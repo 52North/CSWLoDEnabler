@@ -1,0 +1,543 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<csw:GetRecordByIdResponse
+	xmlns:csw="http://www.opengis.net/cat/csw/2.0.2"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.opengis.net/cat/csw/2.0.2 file:///G:/MyFiles/_Dev/OGC_Schemas/csw/2.0.2/CSW-discovery.xsd">
+	<gmd:MD_Metadata xmlns:gco="http://www.isotc211.org/2005/gco" xmlns:gmd="http://www.isotc211.org/2005/gmd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+		<gmd:fileIdentifier>
+			<gco:CharacterString>glues:pik:metadata:dataset:noco2-echo-g-sresa1-annualcropyieldincreases</gco:CharacterString>
+		</gmd:fileIdentifier>
+		<gmd:language>
+			<LanguageCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#LanguageCode" codeListValue="Eng" xmlns="http://www.isotc211.org/2005/gmd" />
+		</gmd:language>
+		<gmd:characterSet>
+			<MD_CharacterSetCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#MD_CharacterSetCode" codeListValue="utf8" xmlns="http://www.isotc211.org/2005/gmd" />
+		</gmd:characterSet>
+		<gmd:parentIdentifier>
+			<gco:CharacterString>glues:pik:metadata:dataset:magpielongtermlanduse(noco2fertilization-miubecho-gclimate-sresa1scenario)</gco:CharacterString>
+		</gmd:parentIdentifier>
+		<gmd:hierarchyLevel>
+			<MD_ScopeCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#MD_ScopeCode" codeListValue="dataset" xmlns="http://www.isotc211.org/2005/gmd" />
+		</gmd:hierarchyLevel>
+		<gmd:hierarchyLevelName>
+			<gco:CharacterString>GLUES</gco:CharacterString>
+		</gmd:hierarchyLevelName>
+		<gmd:hierarchyLevelName>
+			<gco:CharacterString>PIK</gco:CharacterString>
+		</gmd:hierarchyLevelName>
+		<gmd:hierarchyLevelName>
+			<gco:CharacterString>A1</gco:CharacterString>
+		</gmd:hierarchyLevelName>
+		<gmd:contact>
+			<gmd:CI_ResponsibleParty>
+				<gmd:individualName>
+					<gco:CharacterString>Benjamin Leon Bodirsky</gco:CharacterString>
+				</gmd:individualName>
+				<gmd:organisationName>
+					<gco:CharacterString>Potsdam Institute for Climate Impact Research (PIK)</gco:CharacterString>
+				</gmd:organisationName>
+				<gmd:positionName>
+					<gco:CharacterString>RD II Price of Land Project Member</gco:CharacterString>
+				</gmd:positionName>
+				<gmd:contactInfo>
+					<gmd:CI_Contact>
+						<gmd:phone>
+							<gmd:CI_Telephone>
+								<gmd:voice>
+									<gco:CharacterString>+49-(0)331-288 2415</gco:CharacterString>
+								</gmd:voice>
+							</gmd:CI_Telephone>
+						</gmd:phone>
+						<gmd:address>
+							<gmd:CI_Address>
+								<gmd:electronicMailAddress>
+									<gco:CharacterString>bodirsky@pik-potsdam.de</gco:CharacterString>
+								</gmd:electronicMailAddress>
+							</gmd:CI_Address>
+						</gmd:address>
+					</gmd:CI_Contact>
+				</gmd:contactInfo>
+				<gmd:role>
+					<gmd:CI_RoleCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#MD_ScopeCode" codeListValue="publisher">publisher</gmd:CI_RoleCode>
+				</gmd:role>
+			</gmd:CI_ResponsibleParty>
+		</gmd:contact>
+		<gmd:dateStamp>
+			<gco:Date>2013-03-05</gco:Date>
+		</gmd:dateStamp>
+		<gmd:referenceSystemInfo>
+			<gmd:MD_ReferenceSystem>
+				<gmd:referenceSystemIdentifier>
+					<gmd:RS_Identifier>
+						<gmd:code>
+							<gco:CharacterString>4326</gco:CharacterString>
+						</gmd:code>
+						<gmd:codeSpace>
+							<gco:CharacterString>urn:ogc:def:crs:EPSG</gco:CharacterString>
+						</gmd:codeSpace>
+						<gmd:version>
+							<gco:CharacterString>6.11.2</gco:CharacterString>
+						</gmd:version>
+					</gmd:RS_Identifier>
+				</gmd:referenceSystemIdentifier>
+			</gmd:MD_ReferenceSystem>
+		</gmd:referenceSystemInfo>
+		<gmd:identificationInfo>
+			<gmd:MD_DataIdentification>
+				<gmd:citation>
+					<gmd:CI_Citation>
+						<gmd:title>
+							<gco:CharacterString>MAgPIE Longterm Landuse no CO2 / ECHO-G / SRES A1 Annual crop yield increases</gco:CharacterString>
+						</gmd:title>
+						<gmd:date>
+							<gmd:CI_Date>
+								<gmd:date>
+									<gco:Date>2012-08-24</gco:Date>
+								</gmd:date>
+								<gmd:dateType>
+									<CI_DateTypeCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#CI_DateTypeCode" codeListValue="creation" xmlns="http://www.isotc211.org/2005/gmd" />
+								</gmd:dateType>
+							</gmd:CI_Date>
+						</gmd:date>
+						<gmd:identifier>
+							<gmd:RS_Identifier>
+								<gmd:code>
+									<gco:CharacterString>noco2-echo-g-sresa1-annualcropyieldincreases</gco:CharacterString>
+								</gmd:code>
+								<gmd:codeSpace>
+									<gco:CharacterString>urn:glues:pik:metadata:dataset</gco:CharacterString>
+								</gmd:codeSpace>
+							</gmd:RS_Identifier>
+						</gmd:identifier>
+					</gmd:CI_Citation>
+				</gmd:citation>
+				<gmd:abstract>
+					<gco:CharacterString>Scenarios for the annual crop yield increases due to technological change. Results are generated by the MAgPIE model. Unit: Average for all crops [percentage/yr]. Temporal resolution: 10 yearly.</gco:CharacterString>
+				</gmd:abstract>
+				<gmd:pointOfContact>
+					<gmd:CI_ResponsibleParty>
+						<gmd:individualName>
+							<gco:CharacterString>Alexander Popp</gco:CharacterString>
+						</gmd:individualName>
+						<gmd:organisationName>
+							<gco:CharacterString>Potsdam Institute for Climate Impact Research (PIK)</gco:CharacterString>
+						</gmd:organisationName>
+						<gmd:positionName>
+							<gco:CharacterString>RD III Price of Land Project Leader</gco:CharacterString>
+						</gmd:positionName>
+						<gmd:contactInfo>
+							<gmd:CI_Contact>
+								<gmd:phone>
+									<gmd:CI_Telephone>
+										<gmd:voice>
+											<gco:CharacterString>+49-(0)331-288 2463 </gco:CharacterString>
+										</gmd:voice>
+									</gmd:CI_Telephone>
+								</gmd:phone>
+								<gmd:address>
+									<gmd:CI_Address>
+										<gmd:deliveryPoint>
+											<gco:CharacterString>P.O. Box 60 12 03</gco:CharacterString>
+										</gmd:deliveryPoint>
+										<gmd:postalCode>
+											<gco:CharacterString>14412</gco:CharacterString>
+										</gmd:postalCode>
+										<gmd:electronicMailAddress>
+											<gco:CharacterString>popp@pik-potsdam.de</gco:CharacterString>
+										</gmd:electronicMailAddress>
+									</gmd:CI_Address>
+								</gmd:address>
+							</gmd:CI_Contact>
+						</gmd:contactInfo>
+						<gmd:role>
+							<gmd:CI_RoleCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#MD_ScopeCode" codeListValue="pointOfContact">pointOfContact</gmd:CI_RoleCode>
+						</gmd:role>
+					</gmd:CI_ResponsibleParty>
+				</gmd:pointOfContact>
+				<gmd:resourceMaintenance>
+					<gmd:MD_MaintenanceInformation>
+						<gmd:maintenanceAndUpdateFrequency>
+							<MD_MaintenanceFrequencyCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#MD_MaintenanceFrequencyCode" codeListValue="notPlanned" xmlns="http://www.isotc211.org/2005/gmd" />
+						</gmd:maintenanceAndUpdateFrequency>
+					</gmd:MD_MaintenanceInformation>
+				</gmd:resourceMaintenance>
+				<gmd:descriptiveKeywords>
+					<gmd:MD_Keywords>
+						<gmd:keyword>
+							<gco:CharacterString>MAgPIE Longterm Landuse</gco:CharacterString>
+						</gmd:keyword>
+						<gmd:type>
+							<MD_KeywordTypeCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#MD_KeywordTypeCode" codeListValue="theme" xmlns="http://www.isotc211.org/2005/gmd" />
+						</gmd:type>
+					</gmd:MD_Keywords>
+				</gmd:descriptiveKeywords>
+				<gmd:descriptiveKeywords>
+					<gmd:MD_Keywords>
+						<gmd:keyword>
+							<gco:CharacterString>no CO2 / ECHO-G / SRES A1</gco:CharacterString>
+						</gmd:keyword>
+						<gmd:type>
+							<MD_KeywordTypeCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#MD_KeywordTypeCode" codeListValue="theme" xmlns="http://www.isotc211.org/2005/gmd" />
+						</gmd:type>
+					</gmd:MD_Keywords>
+				</gmd:descriptiveKeywords>
+				<gmd:descriptiveKeywords>
+					<gmd:MD_Keywords>
+						<gmd:keyword>
+							<gco:CharacterString>Potsdam Institute for Climate Impact Research (PIK)</gco:CharacterString>
+						</gmd:keyword>
+						<gmd:type>
+							<MD_KeywordTypeCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#MD_KeywordTypeCode" codeListValue="theme" xmlns="http://www.isotc211.org/2005/gmd" />
+						</gmd:type>
+					</gmd:MD_Keywords>
+				</gmd:descriptiveKeywords>
+				<gmd:descriptiveKeywords>
+					<gmd:MD_Keywords>
+						<gmd:keyword>
+							<gco:CharacterString>Potsdam Institute for Climate Impact Research (PIK)</gco:CharacterString>
+						</gmd:keyword>
+						<gmd:type>
+							<MD_KeywordTypeCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#MD_KeywordTypeCode" codeListValue="theme" xmlns="http://www.isotc211.org/2005/gmd" />
+						</gmd:type>
+					</gmd:MD_Keywords>
+				</gmd:descriptiveKeywords>
+				<gmd:resourceConstraints>
+					<gmd:MD_SecurityConstraints>
+						<gmd:classification>
+							<MD_ClassificationCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#MD_ClassificationCode" codeListValue="unclassified" xmlns="http://www.isotc211.org/2005/gmd" />
+						</gmd:classification>
+					</gmd:MD_SecurityConstraints>
+				</gmd:resourceConstraints>
+				<gmd:resourceConstraints>
+					<gmd:MD_LegalConstraints>
+						<gmd:accessConstraints>
+							<MD_RestrictionCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#MD_RestrictionCode" codeListValue="intellectualPropertyRights" xmlns="http://www.isotc211.org/2005/gmd" />
+						</gmd:accessConstraints>
+					</gmd:MD_LegalConstraints>
+				</gmd:resourceConstraints>
+				<gmd:spatialRepresentationType>
+					<MD_SpatialRepresentationTypeCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#MD_SpatialRepresentationTypeCode" codeListValue="vector" xmlns="http://www.isotc211.org/2005/gmd" />
+				</gmd:spatialRepresentationType>
+				<gmd:language>
+					<LanguageCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#LanguageCode" codeListValue="Eng" xmlns="http://www.isotc211.org/2005/gmd" />
+				</gmd:language>
+				<gmd:characterSet>
+					<MD_CharacterSetCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#MD_CharacterSetCode" codeListValue="utf8" xmlns="http://www.isotc211.org/2005/gmd" />
+				</gmd:characterSet>
+				<gmd:topicCategory>
+					<gmd:MD_TopicCategoryCode>farming</gmd:MD_TopicCategoryCode>
+				</gmd:topicCategory>
+				<gmd:topicCategory>
+					<gmd:MD_TopicCategoryCode>economy</gmd:MD_TopicCategoryCode>
+				</gmd:topicCategory>
+				<gmd:extent>
+					<gmd:EX_Extent>
+						<gmd:temporalElement>
+							<gmd:EX_TemporalExtent>
+								<gmd:extent>
+									<gml:TimePeriod gml:id="w606aaa" xmlns:gml="http://www.opengis.net/gml">
+										<gml:beginPosition>2005-01-01</gml:beginPosition>
+										<gml:endPosition>2095-12-31</gml:endPosition>
+									</gml:TimePeriod>
+								</gmd:extent>
+							</gmd:EX_TemporalExtent>
+						</gmd:temporalElement>
+					</gmd:EX_Extent>
+				</gmd:extent>
+				<gmd:extent>
+					<gmd:EX_Extent>
+						<gmd:geographicElement>
+							<gmd:EX_GeographicBoundingBox>
+								<gmd:extentTypeCode>
+									<gco:Boolean>true</gco:Boolean>
+								</gmd:extentTypeCode>
+								<gmd:westBoundLongitude>
+									<gco:Decimal>180.0</gco:Decimal>
+								</gmd:westBoundLongitude>
+								<gmd:eastBoundLongitude>
+									<gco:Decimal>-180.0</gco:Decimal>
+								</gmd:eastBoundLongitude>
+								<gmd:southBoundLatitude>
+									<gco:Decimal>-90.0</gco:Decimal>
+								</gmd:southBoundLatitude>
+								<gmd:northBoundLatitude>
+									<gco:Decimal>90.0</gco:Decimal>
+								</gmd:northBoundLatitude>
+							</gmd:EX_GeographicBoundingBox>
+						</gmd:geographicElement>
+					</gmd:EX_Extent>
+				</gmd:extent>
+			</gmd:MD_DataIdentification>
+		</gmd:identificationInfo>
+		<gmd:distributionInfo>
+			<gmd:MD_Distribution>
+				<gmd:transferOptions>
+					<gmd:MD_DigitalTransferOptions>
+						<gmd:onLine>
+							<gmd:CI_OnlineResource>
+								<gmd:linkage>
+									<gmd:URL>http://services3.glues.geo.tu-dresden.de:8080/geoserver/glues_wp4m8_noco2fertilization_miub_echo_g/ows?service=WFS&amp;version=1.0.0&amp;request=GetFeature&amp;typeName=glues_wp4m8_noco2fertilization_miub_echo_g:v_a1_n23agriculturalproductivityincrease</gmd:URL>
+								</gmd:linkage>
+								<gmd:function>
+									<CI_OnLineFunctionCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#CI_OnLineFunctionCode" codeListValue="download" xmlns="http://www.isotc211.org/2005/gmd" />
+								</gmd:function>
+							</gmd:CI_OnlineResource>
+						</gmd:onLine>
+					</gmd:MD_DigitalTransferOptions>
+				</gmd:transferOptions>
+			</gmd:MD_Distribution>
+		</gmd:distributionInfo>
+		<gmd:dataQualityInfo>
+			<gmd:DQ_DataQuality>
+				<gmd:scope>
+					<gmd:DQ_Scope>
+						<gmd:level>
+							<MD_ScopeCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#MD_ScopeCode" codeListValue="dataset" xmlns="http://www.isotc211.org/2005/gmd" />
+						</gmd:level>
+					</gmd:DQ_Scope>
+				</gmd:scope>
+				<gmd:lineage>
+					<gmd:LI_Lineage>
+						<gmd:processStep>
+							<gmi:LE_ProcessStep xmlns:gmi="http://eden.ign.fr/xsd/metafor/20050620/gmi">
+								<gmd:description>
+									<gco:CharacterString>Demand driven land-use optimization model</gco:CharacterString>
+								</gmd:description>
+								<gmd:rationale>
+									<gco:CharacterString>not set</gco:CharacterString>
+								</gmd:rationale>
+								<gmd:dateTime>
+									<gco:DateTime>2012-08-24T00:00:00</gco:DateTime>
+								</gmd:dateTime>
+								<gmd:processor>
+									<gmd:CI_ResponsibleParty>
+										<gmd:individualName>
+											<gco:CharacterString>Markus Bonsch</gco:CharacterString>
+										</gmd:individualName>
+										<gmd:organisationName>
+											<gco:CharacterString>Potsdam Institute for Climate Impact Research (PIK)</gco:CharacterString>
+										</gmd:organisationName>
+										<gmd:positionName>
+											<gco:CharacterString>RD III Price of Land Project Member</gco:CharacterString>
+										</gmd:positionName>
+										<gmd:contactInfo>
+											<gmd:CI_Contact>
+												<gmd:phone>
+													<gmd:CI_Telephone>
+														<gmd:voice>
+															<gco:CharacterString>+49-(0)331-288 2677</gco:CharacterString>
+														</gmd:voice>
+													</gmd:CI_Telephone>
+												</gmd:phone>
+												<gmd:address>
+													<gmd:CI_Address>
+														<gmd:electronicMailAddress>
+															<gco:CharacterString>bonsch@pik-potsdam.de</gco:CharacterString>
+														</gmd:electronicMailAddress>
+													</gmd:CI_Address>
+												</gmd:address>
+											</gmd:CI_Contact>
+										</gmd:contactInfo>
+										<gmd:role>
+											<gmd:CI_RoleCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#MD_ScopeCode" codeListValue="processor">processor</gmd:CI_RoleCode>
+										</gmd:role>
+									</gmd:CI_ResponsibleParty>
+								</gmd:processor>
+								<gmd:source>
+									<gmd:LI_Source>
+										<gmd:description>
+											<gco:CharacterString>FAOSTAT Database domains</gco:CharacterString>
+										</gmd:description>
+										<gmd:sourceCitation>
+											<gmd:CI_Citation>
+												<gmd:title>
+													<gco:CharacterString>FAOSTAT Database domains</gco:CharacterString>
+												</gmd:title>
+												<gmd:date>
+													<gmd:CI_Date>
+														<gmd:date>
+															<gco:Date>2012-08-07</gco:Date>
+														</gmd:date>
+														<gmd:dateType>
+															<CI_DateTypeCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication" xmlns="http://www.isotc211.org/2005/gmd" />
+														</gmd:dateType>
+													</gmd:CI_Date>
+												</gmd:date>
+												<gmd:identifier>
+													<gmd:RS_Identifier>
+														<gmd:code>
+															<gco:CharacterString>faostatdatabasedomains</gco:CharacterString>
+														</gmd:code>
+														<gmd:codeSpace>
+															<gco:CharacterString>urn:glues-ext:fao:metadata:dataset</gco:CharacterString>
+														</gmd:codeSpace>
+													</gmd:RS_Identifier>
+												</gmd:identifier>
+											</gmd:CI_Citation>
+										</gmd:sourceCitation>
+									</gmd:LI_Source>
+								</gmd:source>
+								<gmd:source>
+									<gmd:LI_Source>
+										<gmd:description>
+											<gco:CharacterString>GTAP 7 Data Base</gco:CharacterString>
+										</gmd:description>
+										<gmd:sourceCitation>
+											<gmd:CI_Citation>
+												<gmd:title>
+													<gco:CharacterString>GTAP 7 Data Base</gco:CharacterString>
+												</gmd:title>
+												<gmd:date>
+													<gmd:CI_Date>
+														<gmd:date>
+															<gco:Date>2012-08-07</gco:Date>
+														</gmd:date>
+														<gmd:dateType>
+															<CI_DateTypeCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication" xmlns="http://www.isotc211.org/2005/gmd" />
+														</gmd:dateType>
+													</gmd:CI_Date>
+												</gmd:date>
+												<gmd:identifier>
+													<gmd:RS_Identifier>
+														<gmd:code>
+															<gco:CharacterString>gtap7database</gco:CharacterString>
+														</gmd:code>
+														<gmd:codeSpace>
+															<gco:CharacterString>urn:glues-ext:cgt:metadata:dataset</gco:CharacterString>
+														</gmd:codeSpace>
+													</gmd:RS_Identifier>
+												</gmd:identifier>
+											</gmd:CI_Citation>
+										</gmd:sourceCitation>
+									</gmd:LI_Source>
+								</gmd:source>
+								<gmd:source>
+									<gmd:LI_Source>
+										<gmd:description>
+											<gco:CharacterString>Calorie Demand</gco:CharacterString>
+										</gmd:description>
+										<gmd:sourceCitation>
+											<gmd:CI_Citation>
+												<gmd:title>
+													<gco:CharacterString>Calorie Demand</gco:CharacterString>
+												</gmd:title>
+												<gmd:date>
+													<gmd:CI_Date>
+														<gmd:date>
+															<gco:Date>2012-08-07</gco:Date>
+														</gmd:date>
+														<gmd:dateType>
+															<CI_DateTypeCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication" xmlns="http://www.isotc211.org/2005/gmd" />
+														</gmd:dateType>
+													</gmd:CI_Date>
+												</gmd:date>
+												<gmd:identifier>
+													<gmd:RS_Identifier>
+														<gmd:code>
+															<gco:CharacterString>caloriedemand</gco:CharacterString>
+														</gmd:code>
+														<gmd:codeSpace>
+															<gco:CharacterString>urn:glues:pik:metadata:dataset</gco:CharacterString>
+														</gmd:codeSpace>
+													</gmd:RS_Identifier>
+												</gmd:identifier>
+											</gmd:CI_Citation>
+										</gmd:sourceCitation>
+									</gmd:LI_Source>
+								</gmd:source>
+								<gmd:source>
+									<gmd:LI_Source>
+										<gmd:description>
+											<gco:CharacterString>Demand for livestock products</gco:CharacterString>
+										</gmd:description>
+										<gmd:sourceCitation>
+											<gmd:CI_Citation>
+												<gmd:title>
+													<gco:CharacterString>Demand for livestock products</gco:CharacterString>
+												</gmd:title>
+												<gmd:date>
+													<gmd:CI_Date>
+														<gmd:date>
+															<gco:Date>2012-08-07</gco:Date>
+														</gmd:date>
+														<gmd:dateType>
+															<CI_DateTypeCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication" xmlns="http://www.isotc211.org/2005/gmd" />
+														</gmd:dateType>
+													</gmd:CI_Date>
+												</gmd:date>
+												<gmd:identifier>
+													<gmd:RS_Identifier>
+														<gmd:code>
+															<gco:CharacterString>demandforlivestockproducts</gco:CharacterString>
+														</gmd:code>
+														<gmd:codeSpace>
+															<gco:CharacterString>urn:glues:pik:metadata:dataset</gco:CharacterString>
+														</gmd:codeSpace>
+													</gmd:RS_Identifier>
+												</gmd:identifier>
+											</gmd:CI_Citation>
+										</gmd:sourceCitation>
+									</gmd:LI_Source>
+								</gmd:source>
+								<gmi:processingInformation>
+									<gmi:LE_Processing>
+										<gmi:identifier>
+											<gmd:MD_Identifier>
+												<gmd:code>
+													<gco:CharacterString>MAgPIE</gco:CharacterString>
+												</gmd:code>
+											</gmd:MD_Identifier>
+										</gmi:identifier>
+										<gmi:procedureDescription>
+											<gco:CharacterString>Demand driven land-use optimization model</gco:CharacterString>
+										</gmi:procedureDescription>
+										<gmi:documentation>
+											<gmd:CI_Citation>
+												<gmd:title>
+													<gco:CharacterString>Lotze-Campen, H., C. Mueller, A. Bondeau, S. Rost, A. Popp, and W. Lucht (2008): Global Food Demand, Productivity Growth, and the Scarcity of Land and Water Resources: a Spatially Explicit Mathematical Programming Approach. Agricultural Economics 39 (3): 325-338.</gco:CharacterString>
+												</gmd:title>
+												<gmd:date>
+													<gmd:CI_Date>
+														<gmd:date>
+															<gco:Date>2008-11-01</gco:Date>
+														</gmd:date>
+														<gmd:dateType>
+															<CI_DateTypeCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication" xmlns="http://www.isotc211.org/2005/gmd" />
+														</gmd:dateType>
+													</gmd:CI_Date>
+												</gmd:date>
+												<gmd:otherCitationDetails>
+													<gco:CharacterString>doi: 10.1111/j.1574-0862.2008.00336.x.</gco:CharacterString>
+												</gmd:otherCitationDetails>
+											</gmd:CI_Citation>
+										</gmi:documentation>
+										<gmi:documentation>
+											<gmd:CI_Citation>
+												<gmd:title>
+													<gco:CharacterString>Bodirsky, B. L., A. Popp, I. Weindl, J. P. Dietrich, S. Rolinski, L. Scheiffele, C. Schmitz, and H. Lotze-Campen (2012) Current State and Future Scenarios of the Global Agricultural Nitrogen Cycle. Biogeosciences Discuss. 9 (3) (March 13): 2755-2821. doi:10.5194/bgd-9-2755-2012.</gco:CharacterString>
+												</gmd:title>
+												<gmd:date>
+													<gmd:CI_Date>
+														<gmd:date>
+															<gco:Date>2012-01-01</gco:Date>
+														</gmd:date>
+														<gmd:dateType>
+															<CI_DateTypeCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication" xmlns="http://www.isotc211.org/2005/gmd" />
+														</gmd:dateType>
+													</gmd:CI_Date>
+												</gmd:date>
+												<gmd:otherCitationDetails>
+													<gco:CharacterString>doi:10.5194/bgd-9-2755-2012</gco:CharacterString>
+												</gmd:otherCitationDetails>
+											</gmd:CI_Citation>
+										</gmi:documentation>
+									</gmi:LE_Processing>
+								</gmi:processingInformation>
+							</gmi:LE_ProcessStep>
+						</gmd:processStep>
+					</gmd:LI_Lineage>
+				</gmd:lineage>
+			</gmd:DQ_DataQuality>
+		</gmd:dataQualityInfo>
+	</gmd:MD_Metadata>
+</csw:GetRecordByIdResponse>
