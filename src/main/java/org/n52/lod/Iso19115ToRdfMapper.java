@@ -13,6 +13,8 @@ import org.isotc211.x2005.gmd.CIContactType;
 import org.isotc211.x2005.gmd.CIDatePropertyType;
 import org.isotc211.x2005.gmd.CIResponsiblePartyPropertyType;
 import org.isotc211.x2005.gmd.CIResponsiblePartyType;
+import org.isotc211.x2005.gmd.MDDistributionPropertyType;
+import org.isotc211.x2005.gmd.MDDistributionType;
 import org.isotc211.x2005.gmd.MDIdentificationPropertyType;
 import org.isotc211.x2005.gmd.MDIdentifierPropertyType;
 import org.isotc211.x2005.gmd.MDIdentifierType;
@@ -42,6 +44,7 @@ public class Iso19115ToRdfMapper {
     public static final String URI_BASE_ORGANIZATIONS = URI_BASE + "organization/";
     public static final String URI_BASE_PROJECTS = URI_BASE + "project/";
     public static final String URI_BASE_RECORDS = URI_BASE + "record/";
+    public static final String URI_BASE_TYPES = URI_BASE + "types/";
     
     public static final String URI_GLUES_PROJECT = URI_BASE_PROJECTS + "GLUES"; // identifies the GLUES project
     public static final String GLUES_PROJECT_NAME_LONG = "Global Assessment of Land Use Dynamics, Greenhouse Gas Emissions and Ecosystem Services";
@@ -86,7 +89,7 @@ public class Iso19115ToRdfMapper {
         MDScopeCodePropertyType[] xb_hierarchyLevelArray = xb_metadata.getHierarchyLevelArray();
         for (int i = 0; i < xb_hierarchyLevelArray.length; i++) {
             String hierarchyLevelCode = xb_hierarchyLevelArray[i].getMDScopeCode().getCodeListValue();
-            recordResource.addLiteral(DC.type, hierarchyLevelCode);
+            recordResource.addProperty(DC.type, URI_BASE_TYPES + hierarchyLevelCode);
         }
         
         //CharacterStringPropertyType[] xb_hierarchyLevelNameArray = xb_metadata.getHierarchyLevelNameArray();
@@ -117,6 +120,9 @@ public class Iso19115ToRdfMapper {
             recordResource.addProperty(DCTerms.spatial, refCodeSpace + "::" + refCode);
         }
         
+        //
+        // Parse Identification Info:
+        //
         MDIdentificationPropertyType[] idInfoArray = xb_metadata.getIdentificationInfoArray();
         for (int i = 0; i < idInfoArray.length; i++) {
             AbstractMDIdentificationType identification = idInfoArray[i].getAbstractMDIdentification();
@@ -196,6 +202,20 @@ public class Iso19115ToRdfMapper {
                 recordResource.addLiteral(DC.subject, topicCategory.getMDTopicCategoryCode().toString());
             }
         }
+        
+        //
+        // Parse Distribution Info:
+        //
+        MDDistributionPropertyType distributionInfo = xb_metadata.getDistributionInfo();
+        for (int i = 0; i < distributionInfo.length; i++) {
+            MDDistributionType distribution = distributionInfo.getMDDistribution();
+            
+            if (distribution != null) {
+                distribution.get
+                
+            }
+        }
+        
         
         return model;
     }

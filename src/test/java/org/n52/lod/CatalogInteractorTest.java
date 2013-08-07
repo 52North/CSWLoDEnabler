@@ -11,9 +11,9 @@ public class CatalogInteractorTest extends TestCase {
     public void testExecuteGetRecords()
     {
         try {
-            String result = new CatalogInteractor().executeGetRecords(20, 1);
+            String result = new CatalogInteractor().executeGetRecords(10, 2000);
             
-            IoUtils.saveFile(new File("c:/temp/catalogResult.xml"), result);
+            IoUtils.saveFile(new File("c:/temp/catalogResult_GetRecords.xml"), result);
             
             System.out.println(result);
         } catch (Exception e) {
@@ -27,6 +27,8 @@ public class CatalogInteractorTest extends TestCase {
     {
         try {
             String result = new CatalogInteractor().executeGetRecordsById(Constants.getInstance().getTestRecordId());
+            
+            IoUtils.saveFile(new File("c:/temp/catalogResult_GetRecordsById.xml"), result);
             
             System.out.println(result);
         } catch (Exception e) {

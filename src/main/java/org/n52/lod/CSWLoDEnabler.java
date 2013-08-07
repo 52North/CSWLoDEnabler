@@ -29,7 +29,23 @@ public class CSWLoDEnabler {
     
     public static void main(String[] args) throws Exception
     {
-        run();
+        run(2000);
+    }
+    
+    public static void runOverAll () throws Exception {
+
+        long timeStart = System.currentTimeMillis();
+        
+        int recordsInTotal = 2427;
+        int startPos = 1;
+        
+        while (startPos < recordsInTotal) {
+            run (startPos);
+            startPos = startPos + 100;
+        }
+        
+        long timeDuration = System.currentTimeMillis() - timeStart;
+        LOGGER.info("duration = " + timeDuration);
     }
     
     /**
@@ -39,13 +55,11 @@ public class CSWLoDEnabler {
      * 3.) inserts the produced RDF into the triplestore
      * @throws Exception 
      */
-    private static void run () throws Exception {
+    private static void run (int startPos) throws Exception {
 
         CatalogInteractor csw = new CatalogInteractor();
         
-        //int recordsInTotal = 2427;
-        
-        String result = csw.executeGetRecords(2426, 1);
+        String result = csw.executeGetRecords(10, startPos);
         
         GetRecordsResponseDocument responseDoc = GetRecordsResponseDocument.Factory.parse(result);
         SearchResultsType searchResults = responseDoc.getGetRecordsResponse().getSearchResults();
