@@ -13,8 +13,13 @@ import org.isotc211.x2005.gmd.CIContactType;
 import org.isotc211.x2005.gmd.CIDatePropertyType;
 import org.isotc211.x2005.gmd.CIResponsiblePartyPropertyType;
 import org.isotc211.x2005.gmd.CIResponsiblePartyType;
+import org.isotc211.x2005.gmd.DQDataQualityType;
+import org.isotc211.x2005.gmd.LILineageType;
+import org.isotc211.x2005.gmd.LIProcessStepType;
 import org.isotc211.x2005.gmd.MDDistributionPropertyType;
 import org.isotc211.x2005.gmd.MDDistributionType;
+import org.isotc211.x2005.gmd.MDDistributorType;
+import org.isotc211.x2005.gmd.MDFormatType;
 import org.isotc211.x2005.gmd.MDIdentificationPropertyType;
 import org.isotc211.x2005.gmd.MDIdentifierPropertyType;
 import org.isotc211.x2005.gmd.MDIdentifierType;
@@ -206,16 +211,71 @@ public class Iso19115ToRdfMapper {
         //
         // Parse Distribution Info:
         //
-        MDDistributionPropertyType distributionInfo = xb_metadata.getDistributionInfo();
-        for (int i = 0; i < distributionInfo.length; i++) {
-            MDDistributionType distribution = distributionInfo.getMDDistribution();
+        MDDistributionPropertyType distributionInfoType = xb_metadata.getDistributionInfo();
+        if (distributionInfoType != null) {
+            MDDistributionType distributionInfo = distributionInfoType.getMDDistribution();
             
-            if (distribution != null) {
-                distribution.get
+            if (distributionInfo != null) {
                 
+                for (int i = 0; i < distributionInfo.getDistributionFormatArray().length; i++) {
+                    MDFormatType format = distributionInfo.getDistributionFormatArray(i).getMDFormat();
+                    
+                    if (format != null) {
+                        addLiteral(recordResource, format.getName(), DCTerms.format);
+                        addLiteral(recordResource, format.getSpecification(), DCTerms.format);
+                    }
+                }
+                
+                for (int i = 0; i < distributionInfo.getDistributorArray().length; i++) {
+                    MDDistributorType distributor = distributionInfo.getDistributorArray(i).getMDDistributor();
+                    
+                    if (distributor != null) {
+                        if (distributor.getDistributorContact() != null) {
+                            if (distributor.getDistributorContact().getCIResponsibleParty() != null) {
+                                parseResponsibleParty(model, recordResource, distributor.getDistributorContact().getCIResponsibleParty());
+                            }
+                        }
+                    }
+                }
             }
         }
         
+        //
+        // Parse Data Quality Info:
+        //
+        if (xb_metadata.getDataQualityInfoArray() != null) {
+            
+            for (int i=0; i < xb_metadata.getDataQualityInfoArray().length; i++) {
+                DQDataQualityType dataQuality = xb_metadata.getDataQualityInfoArray(i).getDQDataQuality();
+                
+                if (dataQuality.getLineage() != null) {
+                    LILineageType lineage = dataQuality.getLineage().getLILineage();
+                    
+
+                    // lineage.getStatement();
+                    
+                    
+                    if (lineage.getProcessStepArray() != null) {
+                        for (int j=0; j < lineage.getProcessStepArray().length; j++) {
+                            LIProcessStepType processStep = lineage.getProcessStepArray(j).getLIProcessStep();
+                            
+                            processStep.getDescription();
+                            
+                            processStep.getRationale();
+                            
+                            processStep.getDateTime();
+                            
+                            
+                        }
+                    }
+                    
+                    
+                    lineage.getSourceArray();
+                    
+                }
+            }
+            
+        }
         
         return model;
     }
@@ -289,6 +349,9 @@ public class Iso19115ToRdfMapper {
                 if (contactRoleCode != null && contactRoleCode.equals("publisher")) {
                     recordResource.addProperty(DC.publisher, personResource);
                 }
+                else if (contactRoleCode != null && contactRoleCode.equals("distributor")) {
+                    recordResource.addProperty(DC.publisher, personResource);
+                }
                 else if (contactRoleCode != null && contactRoleCode.equals("pointOfContact")) {
                     recordResource.addProperty(DC.creator, personResource);
                 }
@@ -296,7 +359,6 @@ public class Iso19115ToRdfMapper {
                     throw new OXFException("Contact role code '" + contactRoleCode + "' not supported.");
                 }
             }
-            
         }
         else {
             throw new OXFException("Non-individual contacts not yet supported.");
