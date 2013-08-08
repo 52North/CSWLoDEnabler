@@ -16,6 +16,7 @@ import org.isotc211.x2005.gmd.CIResponsiblePartyType;
 import org.isotc211.x2005.gmd.DQDataQualityType;
 import org.isotc211.x2005.gmd.LILineageType;
 import org.isotc211.x2005.gmd.LIProcessStepType;
+import org.isotc211.x2005.gmd.LISourceType;
 import org.isotc211.x2005.gmd.MDDistributionPropertyType;
 import org.isotc211.x2005.gmd.MDDistributionType;
 import org.isotc211.x2005.gmd.MDDistributorType;
@@ -29,6 +30,7 @@ import org.isotc211.x2005.gmd.MDMetadataType;
 import org.isotc211.x2005.gmd.MDReferenceSystemPropertyType;
 import org.isotc211.x2005.gmd.MDScopeCodePropertyType;
 import org.isotc211.x2005.gmd.MDTopicCategoryCodePropertyType;
+import org.n52.lod.vocab.PROV;
 import org.n52.oxf.OXFException;
 import org.w3c.dom.Node;
 
@@ -71,6 +73,7 @@ public class Iso19115ToRdfMapper {
         model.setNsPrefix("dc", DC.getURI());
         model.setNsPrefix("dcterms", DCTerms.getURI());
         model.setNsPrefix("vcard", VCARD.getURI());
+        model.setNsPrefix("prov", PROV.getURI());
         
         //
         // start reading GetRecordById response:
@@ -242,6 +245,9 @@ public class Iso19115ToRdfMapper {
         
         //
         // Parse Data Quality Info:
+        // 
+        // This means parsing the ISO 19115 lineage and translating it to PROV.
+        // See also http://www.w3.org/2001/sw/wiki/images/a/a1/Lineage.owl for a suggested mapping
         //
         if (xb_metadata.getDataQualityInfoArray() != null) {
             
@@ -251,27 +257,77 @@ public class Iso19115ToRdfMapper {
                 if (dataQuality.getLineage() != null) {
                     LILineageType lineage = dataQuality.getLineage().getLILineage();
                     
-
-                    // lineage.getStatement();
+                    // create provenance resource 'processStepResource'
+                    Resource processStepResource = model.createResource(DCTerms.ProvenanceStatement);
+                    processStepResource.addProperty(RDF.type, PROV.Activity);
                     
+                    // associate 'processStepResource' with 'recordResource'
+                    processStepResource.addProperty(PROV.generated, recordResource); /// TODO really recordResource or new generated resource???
                     
                     if (lineage.getProcessStepArray() != null) {
                         for (int j=0; j < lineage.getProcessStepArray().length; j++) {
                             LIProcessStepType processStep = lineage.getProcessStepArray(j).getLIProcessStep();
                             
-                            processStep.getDescription();
+                            addLiteral(processStepResource, processStep.getDescription(), DC.description);
                             
-                            processStep.getRationale();
+                            addLiteral(processStepResource, processStep.getRationale(), DCTerms.abstract_);
                             
-                            processStep.getDateTime();
+                            if (processStep.getDateTime() != null) {
+                                processStepResource.addProperty(DCTerms.date, processStep.getDateTime().toString());
+                            }
                             
+                            if (processStep.getProcessorArray() != null) {
+                                for (int h=0; h < processStep.getProcessorArray().length; h++) {
+                                    CIResponsiblePartyPropertyType processorDude = processStep.getProcessorArray(h);
+                                    Resource personResource = parseResponsibleParty(model, processStepResource, processorDude.getCIResponsibleParty());
+                                    
+                                    
+                                }
+                            }
                             
+                            // parsing source(s) of this dataset:
+                            //
+                            if (processStep.getSourceArray() != null) {
+                                for (int h=0; h < processStep.getSourceArray().length; h++) {
+                                    LISourceType source = processStep.getSourceArray(h).getLISource();
+                                    
+                                    Resource sourceResource = model.createResource();
+                                    sourceResource.addProperty(RDF.type, PROV.Entity);
+                                    
+                                    
+                                    //
+                                    //
+                                    // TODO parse source properly
+                                    //
+                                    //
+                                    
+                                    
+                                    
+                                    addLiteral(sourceResource, source.getDescription(), DC.description);
+                                    
+                                    if (source.getSourceCitation() != null) {
+                                        
+                                        CICitationType sourceCitation = source.getSourceCitation().getCICitation();
+                                        sourceCitation.getTitle();
+                                        sourceCitation.getDateArray();
+                                        
+                                        if (sourceCitation.getIdentifierArray() != null) {
+                                            for (int k=0; k < sourceCitation.getIdentifierArray().length; k++) {
+                                                MDIdentifierType sourceIdentifier = sourceCitation.getIdentifierArray(k).getMDIdentifier();
+                                                sourceIdentifier.getCode().getCharacterString();
+                                                
+                                            }
+                                        }
+                                    }
+                                    
+                                    // associate 'source' with 'processStepResource':
+                                    processStepResource.addLiteral(PROV.used, sourceResource);
+                                }
+                            }
                         }
                     }
                     
-                    
-                    lineage.getSourceArray();
-                    
+                    recordResource.addProperty(DCTerms.provenance, processStepResource);
                 }
             }
             
@@ -281,22 +337,25 @@ public class Iso19115ToRdfMapper {
     }
     
     
-    
-    private static void parseResponsibleParty(
+    /**
+     * parses and associates the responsibleParty as a new Resource with the ownerResource.
+     * @return the created Resource for the responsibleParty
+     */
+    private static Resource parseResponsibleParty(
             Model model,
-            Resource recordResource,
-            CIResponsiblePartyType contact) throws OXFException
+            Resource ownerResource,
+            CIResponsiblePartyType responsibleParty) throws OXFException
     {
-        if (contact.getIndividualName() != null) {
+        if (responsibleParty.getIndividualName() != null) {
             // create resource for individual person contact:
-            String name = contact.getIndividualName().getCharacterString();
+            String name = responsibleParty.getIndividualName().getCharacterString();
             Resource personResource = model.createResource(URI_BASE_PERSONS + name.replace(" ", "-"));
             personResource.addLiteral(FOAF.name, name);
             personResource.addLiteral(VCARD.FN, name);
             personResource.addProperty(RDF.type, FOAF.Person);
             personResource.addProperty(RDF.type, FOAF.Agent);
             personResource.addProperty(RDF.type, DCTerms.Agent);
-            
+                        
             // associate with GLUES project:
             Resource gluesProject = model.createResource(URI_GLUES_PROJECT);
             gluesProject.addProperty(RDF.type, FOAF.Project);
@@ -307,11 +366,11 @@ public class Iso19115ToRdfMapper {
             personResource.addProperty(FOAF.currentProject, URI_GLUES_PROJECT);
             
             // read out position name:
-            addLiteral(personResource, contact.getPositionName(), VCARD.ROLE);
+            addLiteral(personResource, responsibleParty.getPositionName(), VCARD.ROLE);
             
             // create resource for organization:
-            if (contact.getOrganisationName() != null) {
-                String orgName = contact.getOrganisationName().getCharacterString();
+            if (responsibleParty.getOrganisationName() != null) {
+                String orgName = responsibleParty.getOrganisationName().getCharacterString();
                 Resource orgResource = model.createResource(URI_BASE_ORGANIZATIONS + orgName.replace(" ", "-"));
                 orgResource.addLiteral(FOAF.name, orgName);
                 orgResource.addProperty(RDF.type, FOAF.Organization);
@@ -320,8 +379,8 @@ public class Iso19115ToRdfMapper {
             }
             
             // read out phone numbers:
-            if (contact.getContactInfo() != null) {
-                CIContactType contactInfo = contact.getContactInfo().getCIContact();
+            if (responsibleParty.getContactInfo() != null) {
+                CIContactType contactInfo = responsibleParty.getContactInfo().getCIContact();
                 
                 if (contactInfo.getPhone() != null)  {
                     if (contactInfo.getPhone().getCITelephone() != null) {
@@ -344,21 +403,30 @@ public class Iso19115ToRdfMapper {
             }
             
             // check role of contact:
-            if (contact.getRole() != null) {
-                String contactRoleCode = contact.getRole().getCIRoleCode().getCodeListValue();
+            if (responsibleParty.getRole() != null) {
+                String contactRoleCode = responsibleParty.getRole().getCIRoleCode().getCodeListValue();
                 if (contactRoleCode != null && contactRoleCode.equals("publisher")) {
-                    recordResource.addProperty(DC.publisher, personResource);
+                    ownerResource.addProperty(DC.publisher, personResource);
                 }
                 else if (contactRoleCode != null && contactRoleCode.equals("distributor")) {
-                    recordResource.addProperty(DC.publisher, personResource);
+                    ownerResource.addProperty(DC.publisher, personResource);
                 }
                 else if (contactRoleCode != null && contactRoleCode.equals("pointOfContact")) {
-                    recordResource.addProperty(DC.creator, personResource);
+                    ownerResource.addProperty(DC.creator, personResource);
+                }
+                else if (contactRoleCode != null && contactRoleCode.equals("processor")) {
+                    // this 'if' means we are dealing with a provenance processor ... 
+                    ownerResource.addProperty(PROV.influencer, personResource);
+                    // ... so add further properties:
+                    personResource.addProperty(RDF.type, PROV.Person);
+                    ownerResource.addProperty(PROV.wasAssociatedWith, personResource);
                 }
                 else {
                     throw new OXFException("Contact role code '" + contactRoleCode + "' not supported.");
                 }
             }
+            
+            return personResource;
         }
         else {
             throw new OXFException("Non-individual contacts not yet supported.");
