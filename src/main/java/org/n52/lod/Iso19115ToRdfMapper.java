@@ -30,8 +30,10 @@ import org.isotc211.x2005.gmd.MDMetadataType;
 import org.isotc211.x2005.gmd.MDReferenceSystemPropertyType;
 import org.isotc211.x2005.gmd.MDScopeCodePropertyType;
 import org.isotc211.x2005.gmd.MDTopicCategoryCodePropertyType;
+import org.isotc211.x2005.gmd.RSIdentifierType;
 import org.n52.lod.vocab.PROV;
 import org.n52.oxf.OXFException;
+import org.n52.oxf.valueDomains.time.TimeFactory;
 import org.w3c.dom.Node;
 
 import com.hp.hpl.jena.rdf.model.Model;
@@ -166,8 +168,7 @@ public class Iso19115ToRdfMapper {
                     MDIdentifierPropertyType[] citationIdArray = citation.getIdentifierArray();
                     for (int j = 0; j < citationIdArray.length; j++) {
                         MDIdentifierType citationId = citationIdArray[j].getMDIdentifier();
-                        String citationIdCode = citationId.getCode().getCharacterString();
-                        recordResource.addLiteral(DC.identifier, citationIdCode);
+                        parseIdentifier(recordResource, citationId);
                     }
                 }
             }
@@ -279,12 +280,11 @@ public class Iso19115ToRdfMapper {
                             if (processStep.getProcessorArray() != null) {
                                 for (int h=0; h < processStep.getProcessorArray().length; h++) {
                                     CIResponsiblePartyPropertyType processorDude = processStep.getProcessorArray(h);
-                                    Resource personResource = parseResponsibleParty(model, processStepResource, processorDude.getCIResponsibleParty());
-                                    
-                                    
+                                    parseResponsibleParty(model, processStepResource, processorDude.getCIResponsibleParty());
                                 }
                             }
                             
+                            //
                             // parsing source(s) of this dataset:
                             //
                             if (processStep.getSourceArray() != null) {
@@ -294,36 +294,62 @@ public class Iso19115ToRdfMapper {
                                     Resource sourceResource = model.createResource();
                                     sourceResource.addProperty(RDF.type, PROV.Entity);
                                     
-                                    
-                                    //
-                                    //
-                                    // TODO parse source properly
-                                    //
-                                    //
-                                    
-                                    
-                                    
                                     addLiteral(sourceResource, source.getDescription(), DC.description);
                                     
                                     if (source.getSourceCitation() != null) {
                                         
                                         CICitationType sourceCitation = source.getSourceCitation().getCICitation();
-                                        sourceCitation.getTitle();
-                                        sourceCitation.getDateArray();
+                                        addLiteral(sourceResource, sourceCitation.getTitle(), DCTerms.title);
+                                        
+                                        // trying to parse date:
+                                        String date = null;
+                                        if (sourceCitation.getDateArray() != null) {
+                                            for (int k=0; k < sourceCitation.getDateArray().length; k++) {
+                                                CIDatePropertyType dateProperty = sourceCitation.getDateArray(k);
+                                                
+                                                if (dateProperty.getCIDate() != null) {
+                                                    if (dateProperty.getCIDate().getDate() != null) {
+                                                        if (dateProperty.getCIDate().getDate().getDate() != null) {
+                                                            date = TimeFactory.createTime(dateProperty.getCIDate().getDate().getDate().toString()).toISO8601Format();
+                                                        }
+                                                        else if (dateProperty.getCIDate().getDate().getDateTime() != null) {
+                                                            date = TimeFactory.createTime(dateProperty.getCIDate().getDate().getDateTime().toString()).toISO8601Format();
+                                                        }
+                                                    }
+                                                    if (date != null) {
+                                                        if (dateProperty.getCIDate().getDateType() != null) {
+                                                            if (dateProperty.getCIDate().getDateType().getCIDateTypeCode() != null) {
+                                                                String dateType = dateProperty.getCIDate().getDateType().getCIDateTypeCode().getCodeListValue();
+                                                                if (dateType != null) {
+                                                                    if (dateType.equals("publication")) {
+                                                                        sourceResource.addProperty(PROV.generatedAtTime, date);
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
                                         
                                         if (sourceCitation.getIdentifierArray() != null) {
                                             for (int k=0; k < sourceCitation.getIdentifierArray().length; k++) {
                                                 MDIdentifierType sourceIdentifier = sourceCitation.getIdentifierArray(k).getMDIdentifier();
-                                                sourceIdentifier.getCode().getCharacterString();
-                                                
+
+                                                parseIdentifier(sourceResource, sourceIdentifier);
                                             }
                                         }
                                     }
                                     
                                     // associate 'source' with 'processStepResource':
-                                    processStepResource.addLiteral(PROV.used, sourceResource);
+                                    processStepResource.addProperty(PROV.used, sourceResource);
                                 }
                             }
+                            
+                            //
+                            // parsing processingInformation of this processStep:
+                            //
+                            // TODO <gmi:procedureDescription> cannot be parsed with XML Beans.
                         }
                     }
                     
@@ -336,7 +362,34 @@ public class Iso19115ToRdfMapper {
         return model;
     }
     
-    
+    /**
+     * parses an MDIdentifierType element and associates the identifier with the resource.
+     */
+    private static void parseIdentifier(Resource resource,
+            MDIdentifierType identifier)
+    {
+        String uri;
+        
+        try {
+            RSIdentifierType rsIdentifier = (RSIdentifierType) identifier;
+            String code = rsIdentifier.getCode().getCharacterString();
+            String codeSpace = rsIdentifier.getCodeSpace().getCharacterString();
+            
+            // build one identifier URI:
+            if (codeSpace.startsWith("urn:")) {
+                uri = codeSpace.substring(4) + ":" + code;
+            }
+            else {
+                uri = codeSpace + ":" + code;
+            }
+        }
+        catch (ClassCastException e) {
+            uri = identifier.getCode().getCharacterString();
+        }
+        
+        resource.addProperty(DC.identifier, uri);
+    }
+
     /**
      * parses and associates the responsibleParty as a new Resource with the ownerResource.
      * @return the created Resource for the responsibleParty

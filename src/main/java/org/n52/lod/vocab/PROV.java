@@ -38,6 +38,8 @@ public class PROV {
     
     public static final Property generated = m.createProperty(URI + "generated");
     
+    public static final Property generatedAtTime = m.createProperty(URI + "generatedAtTime");
+    
     private PROV()
     {
     }

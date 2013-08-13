@@ -54,7 +54,7 @@ public class CatalogInteractor {
         paramCon.addParameterShell(CSWRequestBuilder.GET_RECORD_BY_ID_OUTPUT_SCHEMA, outputSchema);
 
         OperationResult opResult = adapter.doOperation(new Operation(CSWAdapter.GET_RECORD_BY_ID, Constants.getInstance().getUrlCSW() + "?", Constants.getInstance().getUrlCSW()), paramCon);
-
+        
         String result = new String(opResult.getIncomingResult());
 
         return result;
