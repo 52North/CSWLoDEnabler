@@ -29,7 +29,7 @@ public class CSWLoDEnabler {
     
     public static void main(String[] args) throws Exception
     {
-        run(2000);
+        run(2000, 10);
     }
     
     public static void runOverAll () throws Exception {
@@ -40,7 +40,7 @@ public class CSWLoDEnabler {
         int startPos = 1;
         
         while (startPos < recordsInTotal) {
-            run (startPos);
+            run (startPos, 100);
             startPos = startPos + 100;
         }
         
@@ -55,11 +55,11 @@ public class CSWLoDEnabler {
      * 3.) inserts the produced RDF into the triplestore
      * @throws Exception 
      */
-    private static void run (int startPos) throws Exception {
+    private static void run (int startPos, int maxRecords) throws Exception {
 
         CatalogInteractor csw = new CatalogInteractor();
         
-        String result = csw.executeGetRecords(10, startPos);
+        String result = csw.executeGetRecords(maxRecords, startPos);
         
         GetRecordsResponseDocument responseDoc = GetRecordsResponseDocument.Factory.parse(result);
         SearchResultsType searchResults = responseDoc.getGetRecordsResponse().getSearchResults();
