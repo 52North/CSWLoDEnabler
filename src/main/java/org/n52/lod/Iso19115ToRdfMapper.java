@@ -269,60 +269,63 @@ public class Iso19115ToRdfMapper {
                         for (int j=0; j < lineage.getProcessStepArray().length; j++) {
                             LIProcessStepType processStep = lineage.getProcessStepArray(j).getLIProcessStep();
                             
-                            addLiteral(processStepResource, processStep.getDescription(), DC.description);
-                            
-                            addLiteral(processStepResource, processStep.getRationale(), DCTerms.abstract_);
-                            
-                            if (processStep.getDateTime() != null) {
-                                processStepResource.addProperty(DCTerms.date, processStep.getDateTime().toString());
-                            }
-                            
-                            if (processStep.getProcessorArray() != null) {
-                                for (int h=0; h < processStep.getProcessorArray().length; h++) {
-                                    CIResponsiblePartyPropertyType processorDude = processStep.getProcessorArray(h);
-                                    parseResponsibleParty(model, processStepResource, processorDude.getCIResponsibleParty());
+                            if (processStep != null) {
+                                
+                                addLiteral(processStepResource, processStep.getDescription(), DC.description);
+                                
+                                addLiteral(processStepResource, processStep.getRationale(), DCTerms.abstract_);
+                                
+                                if (processStep.getDateTime() != null) {
+                                    processStepResource.addProperty(DCTerms.date, processStep.getDateTime().toString());
                                 }
-                            }
-                            
-                            //
-                            // parsing source(s) of this dataset:
-                            //
-                            if (processStep.getSourceArray() != null) {
-                                for (int h=0; h < processStep.getSourceArray().length; h++) {
-                                    LISourceType source = processStep.getSourceArray(h).getLISource();
-                                    
-                                    Resource sourceResource = model.createResource();
-                                    sourceResource.addProperty(RDF.type, PROV.Entity);
-                                    
-                                    addLiteral(sourceResource, source.getDescription(), DC.description);
-                                    
-                                    if (source.getSourceCitation() != null) {
+                                
+                                if (processStep.getProcessorArray() != null) {
+                                    for (int h=0; h < processStep.getProcessorArray().length; h++) {
+                                        CIResponsiblePartyPropertyType processorDude = processStep.getProcessorArray(h);
+                                        parseResponsibleParty(model, processStepResource, processorDude.getCIResponsibleParty());
+                                    }
+                                }
+                                
+                                //
+                                // parsing source(s) of this dataset:
+                                //
+                                if (processStep.getSourceArray() != null) {
+                                    for (int h=0; h < processStep.getSourceArray().length; h++) {
+                                        LISourceType source = processStep.getSourceArray(h).getLISource();
                                         
-                                        CICitationType sourceCitation = source.getSourceCitation().getCICitation();
-                                        addLiteral(sourceResource, sourceCitation.getTitle(), DCTerms.title);
+                                        Resource sourceResource = model.createResource();
+                                        sourceResource.addProperty(RDF.type, PROV.Entity);
                                         
-                                        // trying to parse date:
-                                        String date = null;
-                                        if (sourceCitation.getDateArray() != null) {
-                                            for (int k=0; k < sourceCitation.getDateArray().length; k++) {
-                                                CIDatePropertyType dateProperty = sourceCitation.getDateArray(k);
-                                                
-                                                if (dateProperty.getCIDate() != null) {
-                                                    if (dateProperty.getCIDate().getDate() != null) {
-                                                        if (dateProperty.getCIDate().getDate().getDate() != null) {
-                                                            date = TimeFactory.createTime(dateProperty.getCIDate().getDate().getDate().toString()).toISO8601Format();
+                                        addLiteral(sourceResource, source.getDescription(), DC.description);
+                                        
+                                        if (source.getSourceCitation() != null) {
+                                            
+                                            CICitationType sourceCitation = source.getSourceCitation().getCICitation();
+                                            addLiteral(sourceResource, sourceCitation.getTitle(), DCTerms.title);
+                                            
+                                            // trying to parse date:
+                                            String date = null;
+                                            if (sourceCitation.getDateArray() != null) {
+                                                for (int k=0; k < sourceCitation.getDateArray().length; k++) {
+                                                    CIDatePropertyType dateProperty = sourceCitation.getDateArray(k);
+                                                    
+                                                    if (dateProperty.getCIDate() != null) {
+                                                        if (dateProperty.getCIDate().getDate() != null) {
+                                                            if (dateProperty.getCIDate().getDate().getDate() != null) {
+                                                                date = TimeFactory.createTime(dateProperty.getCIDate().getDate().getDate().toString()).toISO8601Format();
+                                                            }
+                                                            else if (dateProperty.getCIDate().getDate().getDateTime() != null) {
+                                                                date = TimeFactory.createTime(dateProperty.getCIDate().getDate().getDateTime().toString()).toISO8601Format();
+                                                            }
                                                         }
-                                                        else if (dateProperty.getCIDate().getDate().getDateTime() != null) {
-                                                            date = TimeFactory.createTime(dateProperty.getCIDate().getDate().getDateTime().toString()).toISO8601Format();
-                                                        }
-                                                    }
-                                                    if (date != null) {
-                                                        if (dateProperty.getCIDate().getDateType() != null) {
-                                                            if (dateProperty.getCIDate().getDateType().getCIDateTypeCode() != null) {
-                                                                String dateType = dateProperty.getCIDate().getDateType().getCIDateTypeCode().getCodeListValue();
-                                                                if (dateType != null) {
-                                                                    if (dateType.equals("publication")) {
-                                                                        sourceResource.addProperty(PROV.generatedAtTime, date);
+                                                        if (date != null) {
+                                                            if (dateProperty.getCIDate().getDateType() != null) {
+                                                                if (dateProperty.getCIDate().getDateType().getCIDateTypeCode() != null) {
+                                                                    String dateType = dateProperty.getCIDate().getDateType().getCIDateTypeCode().getCodeListValue();
+                                                                    if (dateType != null) {
+                                                                        if (dateType.equals("publication")) {
+                                                                            sourceResource.addProperty(PROV.generatedAtTime, date);
+                                                                        }
                                                                     }
                                                                 }
                                                             }
@@ -330,19 +333,19 @@ public class Iso19115ToRdfMapper {
                                                     }
                                                 }
                                             }
-                                        }
-                                        
-                                        if (sourceCitation.getIdentifierArray() != null) {
-                                            for (int k=0; k < sourceCitation.getIdentifierArray().length; k++) {
-                                                MDIdentifierType sourceIdentifier = sourceCitation.getIdentifierArray(k).getMDIdentifier();
-
-                                                parseIdentifier(sourceResource, sourceIdentifier);
+                                            
+                                            if (sourceCitation.getIdentifierArray() != null) {
+                                                for (int k=0; k < sourceCitation.getIdentifierArray().length; k++) {
+                                                    MDIdentifierType sourceIdentifier = sourceCitation.getIdentifierArray(k).getMDIdentifier();
+    
+                                                    parseIdentifier(sourceResource, sourceIdentifier);
+                                                }
                                             }
                                         }
+                                        
+                                        // associate 'source' with 'processStepResource':
+                                        processStepResource.addProperty(PROV.used, sourceResource);
                                     }
-                                    
-                                    // associate 'source' with 'processStepResource':
-                                    processStepResource.addProperty(PROV.used, sourceResource);
                                 }
                             }
                             

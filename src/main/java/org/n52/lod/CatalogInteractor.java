@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 public class CatalogInteractor {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(CatalogInteractor.class);
     
     public String executeGetRecords(int maxRecords, int startPos) throws Exception {
         
@@ -39,6 +40,8 @@ public class CatalogInteractor {
     
     public String executeGetRecordsById(String recordID) throws Exception
     {
+        LOGGER.info("Calling GetRecordsById for record '" + recordID + "'");
+        
         CSWAdapter adapter = new CSWAdapter();
 
         String elementSetName = "full";

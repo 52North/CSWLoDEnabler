@@ -19,7 +19,7 @@ import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.RDFNode;
 
-public class VirtuosoInteractorTest extends TestCase {
+public class VirtuosoInteractorTestManual extends TestCase {
     
     public void testLoadVirtuoso() throws IOException
     {

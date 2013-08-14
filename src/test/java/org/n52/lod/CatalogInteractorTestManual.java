@@ -6,7 +6,7 @@ import junit.framework.TestCase;
 
 import org.n52.util.IoUtils;
 
-public class CatalogInteractorTest extends TestCase {
+public class CatalogInteractorTestManual extends TestCase {
 
     public void testExecuteGetRecords()
     {
