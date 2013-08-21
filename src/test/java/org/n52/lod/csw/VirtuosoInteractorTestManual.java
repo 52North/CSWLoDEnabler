@@ -1,10 +1,10 @@
-package org.n52.lod;
+package org.n52.lod.csw;
 
 import java.io.IOException;
 
-import org.n52.lod.Constants;
-import org.n52.lod.Iso19115ToRdfMapper;
-import org.n52.lod.CatalogInteractor;
+import org.n52.lod.csw.CatalogInteractor;
+import org.n52.lod.csw.Constants;
+import org.n52.lod.csw.mapping.IsoToRdfMapper;
 
 import junit.framework.TestCase;
 import virtuoso.jena.driver.VirtGraph;
@@ -31,7 +31,7 @@ public class VirtuosoInteractorTestManual extends TestCase {
         try {
             String recordDescription = new CatalogInteractor().executeGetRecordsById(Constants.getInstance().getTestRecordId());
 
-            model = Iso19115ToRdfMapper.addGetRecordByIdResponseToModel(model, recordDescription);
+            model = IsoToRdfMapper.addGetRecordByIdResponseToModel(model, recordDescription);
 
         } catch (Exception e) {
             e.printStackTrace();

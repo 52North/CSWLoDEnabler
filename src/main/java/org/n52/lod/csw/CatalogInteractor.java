@@ -1,4 +1,4 @@
-package org.n52.lod;
+package org.n52.lod.csw;
 
 
 import net.opengis.cat.csw.x202.ElementSetNameType;

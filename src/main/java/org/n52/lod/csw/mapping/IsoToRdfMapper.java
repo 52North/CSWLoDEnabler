@@ -1,13 +1,15 @@
-package org.n52.lod;
+package org.n52.lod.csw.mapping;
 
 import java.util.Calendar;
 
 import net.opengis.cat.csw.x202.GetRecordByIdResponseDocument;
 
 import org.apache.xmlbeans.XmlObject;
+import org.apache.xmlbeans.XmlOptions;
 import org.isotc211.x2005.gco.CharacterStringPropertyType;
 import org.isotc211.x2005.gmd.AbstractMDIdentificationType;
 import org.isotc211.x2005.gmd.CIAddressType;
+import org.isotc211.x2005.gmd.CICitationPropertyType;
 import org.isotc211.x2005.gmd.CICitationType;
 import org.isotc211.x2005.gmd.CIContactType;
 import org.isotc211.x2005.gmd.CIDatePropertyType;
@@ -15,7 +17,6 @@ import org.isotc211.x2005.gmd.CIResponsiblePartyPropertyType;
 import org.isotc211.x2005.gmd.CIResponsiblePartyType;
 import org.isotc211.x2005.gmd.DQDataQualityType;
 import org.isotc211.x2005.gmd.LILineageType;
-import org.isotc211.x2005.gmd.LIProcessStepType;
 import org.isotc211.x2005.gmd.LISourceType;
 import org.isotc211.x2005.gmd.MDDistributionPropertyType;
 import org.isotc211.x2005.gmd.MDDistributionType;
@@ -31,6 +32,7 @@ import org.isotc211.x2005.gmd.MDReferenceSystemPropertyType;
 import org.isotc211.x2005.gmd.MDScopeCodePropertyType;
 import org.isotc211.x2005.gmd.MDTopicCategoryCodePropertyType;
 import org.isotc211.x2005.gmd.RSIdentifierType;
+import org.n52.lod.csw.Constants;
 import org.n52.lod.vocab.PROV;
 import org.n52.oxf.OXFException;
 import org.n52.oxf.valueDomains.time.TimeFactory;
@@ -46,7 +48,16 @@ import com.hp.hpl.jena.vocabulary.DCTerms;
 import com.hp.hpl.jena.vocabulary.RDF;
 import com.hp.hpl.jena.vocabulary.VCARD;
 
-public class Iso19115ToRdfMapper {
+import fr.ign.eden.xsd.metafor.x20050620.gmi.LEProcessStepType;
+import fr.ign.eden.xsd.metafor.x20050620.gmi.LEProcessingPropertyType;
+import fr.ign.eden.xsd.metafor.x20050620.gmi.LEProcessingType;
+
+/**
+ * This class maps CSW records encoded as ISO 19115 to RDF.
+ *  
+ * @author <a href="mailto:broering@52north.org">Arne Broering</a>
+ */
+public class IsoToRdfMapper {
     
     public static final String URI_BASE = "http://glues.52north.org/resource/";
     public static final String URI_BASE_PERSONS = URI_BASE + "person/";
@@ -54,6 +65,7 @@ public class Iso19115ToRdfMapper {
     public static final String URI_BASE_PROJECTS = URI_BASE + "project/";
     public static final String URI_BASE_RECORDS = URI_BASE + "record/";
     public static final String URI_BASE_TYPES = URI_BASE + "types/";
+    public static final String URI_BASE_PROCESS = URI_BASE + "process/";
     
     public static final String URI_GLUES_PROJECT = URI_BASE_PROJECTS + "GLUES"; // identifies the GLUES project
     public static final String GLUES_PROJECT_NAME_LONG = "Global Assessment of Land Use Dynamics, Greenhouse Gas Emissions and Ecosystem Services";
@@ -77,10 +89,13 @@ public class Iso19115ToRdfMapper {
         model.setNsPrefix("vcard", VCARD.getURI());
         model.setNsPrefix("prov", PROV.getURI());
         
+        XmlOptions xmlOptions = new XmlOptions();
+        xmlOptions.setCharacterEncoding("UTF-8");
+        
         //
         // start reading GetRecordById response:
         //
-        GetRecordByIdResponseDocument xb_getRecordByIdResponse = GetRecordByIdResponseDocument.Factory.parse(getRecordByIdResponse);
+        GetRecordByIdResponseDocument xb_getRecordByIdResponse = GetRecordByIdResponseDocument.Factory.parse(getRecordByIdResponse, xmlOptions);
         Node xb_MDMetadataNode = xb_getRecordByIdResponse.getGetRecordByIdResponse().getDomNode().getChildNodes().item(0);
         
         MDMetadataType xb_metadata = MDMetadataDocument.Factory.parse(xb_MDMetadataNode).getMDMetadata();
@@ -138,39 +153,7 @@ public class Iso19115ToRdfMapper {
             AbstractMDIdentificationType identification = idInfoArray[i].getAbstractMDIdentification();
             
             if (identification.getCitation() != null) {
-                CICitationType citation = identification.getCitation().getCICitation();
-                
-                // parsing title:
-                addLiteral(recordResource, citation.getTitle(), DC.title);
-                
-                // parsing date:
-                CIDatePropertyType[] dateArray = citation.getDateArray();
-                for (int j = 0; j < dateArray.length; j++) {
-                    String dateType = dateArray[j].getCIDate().getDateType().getCIDateTypeCode().getCodeListValue();
-                    
-                    if (dateType.equals("creation")) {
-                        Calendar creationDate = dateArray[j].getCIDate().getDate().getDate();
-                        if (creationDate != null) {
-                            recordResource.addProperty(DCTerms.created, creationDate.toString());
-                        }
-                        Calendar dateTime = dateArray[j].getCIDate().getDate().getDateTime();
-                        if (dateTime != null) {
-                            recordResource.addProperty(DCTerms.created, dateTime.toString());
-                        }
-                    }
-                    else {
-                        throw new OXFException("date type '" + dateType + "' not supported");
-                    }
-                }
-                
-                // parsing identifiers:
-                if (citation.getIdentifierArray() != null) {
-                    MDIdentifierPropertyType[] citationIdArray = citation.getIdentifierArray();
-                    for (int j = 0; j < citationIdArray.length; j++) {
-                        MDIdentifierType citationId = citationIdArray[j].getMDIdentifier();
-                        parseIdentifier(recordResource, citationId);
-                    }
-                }
+                parseCitation(recordResource, identification.getCitation().getCICitation());
             }
             
             // parsing abstract:
@@ -259,7 +242,8 @@ public class Iso19115ToRdfMapper {
                     LILineageType lineage = dataQuality.getLineage().getLILineage();
                     
                     // create provenance resource 'processStepResource'
-                    Resource processStepResource = model.createResource(DCTerms.ProvenanceStatement);
+                    Resource processStepResource = model.createResource(URI_BASE_PROCESS + recordId);
+                    processStepResource.addProperty(RDF.type, DCTerms.ProvenanceStatement);
                     processStepResource.addProperty(RDF.type, PROV.Activity);
                     
                     // associate 'processStepResource' with 'recordResource'
@@ -267,7 +251,8 @@ public class Iso19115ToRdfMapper {
                     
                     if (lineage.getProcessStepArray() != null) {
                         for (int j=0; j < lineage.getProcessStepArray().length; j++) {
-                            LIProcessStepType processStep = lineage.getProcessStepArray(j).getLIProcessStep();
+                            
+                            LEProcessStepType processStep = LEProcessStepType.Factory.parse(lineage.getProcessStepArray(j).getDomNode().getFirstChild());
                             
                             if (processStep != null) {
                                 
@@ -299,48 +284,7 @@ public class Iso19115ToRdfMapper {
                                         addLiteral(sourceResource, source.getDescription(), DC.description);
                                         
                                         if (source.getSourceCitation() != null) {
-                                            
-                                            CICitationType sourceCitation = source.getSourceCitation().getCICitation();
-                                            addLiteral(sourceResource, sourceCitation.getTitle(), DCTerms.title);
-                                            
-                                            // trying to parse date:
-                                            String date = null;
-                                            if (sourceCitation.getDateArray() != null) {
-                                                for (int k=0; k < sourceCitation.getDateArray().length; k++) {
-                                                    CIDatePropertyType dateProperty = sourceCitation.getDateArray(k);
-                                                    
-                                                    if (dateProperty.getCIDate() != null) {
-                                                        if (dateProperty.getCIDate().getDate() != null) {
-                                                            if (dateProperty.getCIDate().getDate().getDate() != null) {
-                                                                date = TimeFactory.createTime(dateProperty.getCIDate().getDate().getDate().toString()).toISO8601Format();
-                                                            }
-                                                            else if (dateProperty.getCIDate().getDate().getDateTime() != null) {
-                                                                date = TimeFactory.createTime(dateProperty.getCIDate().getDate().getDateTime().toString()).toISO8601Format();
-                                                            }
-                                                        }
-                                                        if (date != null) {
-                                                            if (dateProperty.getCIDate().getDateType() != null) {
-                                                                if (dateProperty.getCIDate().getDateType().getCIDateTypeCode() != null) {
-                                                                    String dateType = dateProperty.getCIDate().getDateType().getCIDateTypeCode().getCodeListValue();
-                                                                    if (dateType != null) {
-                                                                        if (dateType.equals("publication")) {
-                                                                            sourceResource.addProperty(PROV.generatedAtTime, date);
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            
-                                            if (sourceCitation.getIdentifierArray() != null) {
-                                                for (int k=0; k < sourceCitation.getIdentifierArray().length; k++) {
-                                                    MDIdentifierType sourceIdentifier = sourceCitation.getIdentifierArray(k).getMDIdentifier();
-    
-                                                    parseIdentifier(sourceResource, sourceIdentifier);
-                                                }
-                                            }
+                                            parseCitation(recordResource, source.getSourceCitation().getCICitation());
                                         }
                                         
                                         // associate 'source' with 'processStepResource':
@@ -351,8 +295,33 @@ public class Iso19115ToRdfMapper {
                             
                             //
                             // parsing processingInformation of this processStep:
-                            //
-                            // TODO <gmi:procedureDescription> cannot be parsed with XML Beans.
+                            //<gmi:LE_ProcessStep xmlns:gmi="http://eden.ign.fr/xsd/metafor/20050620/gmi" xmlns="http://www.isotc211.org/2005/gmd" xmlns:gco="http://www.isotc211.org/2005/gco">
+                            //  ...
+                            //  <gmi:processingInformation>
+                            //    <gmi:LE_Processing>
+                            //      ...
+                            
+                            // TODO XMLBeans parsing doesn't work! Extremely wild HACK follows... 
+                            
+//                            LEProcessingPropertyType processingProperty = LEProcessingPropertyType.Factory.parse(processStep.getDomNode().getLastChild().getLastChild());
+//                            if (processingProperty != null) {
+//                                LEProcessingType processing = LEProcessingType.Factory.parse(processingProperty.getDomNode().getFirstChild(), xmlOptions);
+//                                
+//                                //assuming identifier on first position
+//                                MDIdentifierPropertyType identifier = MDIdentifierPropertyType.Factory.parse(processing.getDomNode().getFirstChild().getFirstChild().getFirstChild());
+//                                
+//                                if (identifier != null) {
+//                                    parseIdentifier(processStepResource, identifier.getMDIdentifier());
+//                                }
+//                                
+//                                addLiteral(processStepResource, processing.getProcedureDescription(), DC.description);
+//                                
+//                                if (processing.getDocumentationArray() != null) {
+//                                    for (int k = 0; k < processing.getDocumentationArray().length; k++) {
+//                                        parseCitation(processStepResource, processing.getDocumentationArray(k).getCICitation());
+//                                    }
+//                                }
+//                            }
                         }
                     }
                     
@@ -365,6 +334,60 @@ public class Iso19115ToRdfMapper {
         return model;
     }
     
+    private static void parseCitation(Resource resource,
+            CICitationType citation) throws OXFException
+    {
+        // parsing title:
+        addLiteral(resource, citation.getTitle(), DC.title);
+        
+        // tparsing date:
+        String date = null;
+        if (citation.getDateArray() != null) {
+            for (int k=0; k < citation.getDateArray().length; k++) {
+                CIDatePropertyType dateProperty = citation.getDateArray(k);
+                
+                if (dateProperty.getCIDate() != null) {
+                    if (dateProperty.getCIDate().getDate() != null) {
+                        if (dateProperty.getCIDate().getDate().getDate() != null) {
+                            date = TimeFactory.createTime(dateProperty.getCIDate().getDate().getDate().toString()).toISO8601Format();
+                        }
+                        else if (dateProperty.getCIDate().getDate().getDateTime() != null) {
+                            date = TimeFactory.createTime(dateProperty.getCIDate().getDate().getDateTime().toString()).toISO8601Format();
+                        }
+                    }
+                    if (date != null) {
+                        if (dateProperty.getCIDate().getDateType() != null) {
+                            if (dateProperty.getCIDate().getDateType().getCIDateTypeCode() != null) {
+                                String dateType = dateProperty.getCIDate().getDateType().getCIDateTypeCode().getCodeListValue();
+                                if (dateType != null) {
+                                    if (dateType.equals("publication")) {
+                                        resource.addProperty(PROV.generatedAtTime, date);
+                                    }
+                                    else if (dateType.equals("creation")) {
+                                        resource.addProperty(DCTerms.created, date);
+                                    }
+                                    else {
+                                        throw new OXFException("date type '" + dateType + "' not supported");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // parsing identifiers:
+        if (citation.getIdentifierArray() != null) {
+            MDIdentifierPropertyType[] citationIdArray = citation.getIdentifierArray();
+            for (int j = 0; j < citationIdArray.length; j++) {
+                MDIdentifierType citationId = citationIdArray[j].getMDIdentifier();
+                parseIdentifier(resource, citationId);
+            }
+        }
+        
+    }
+
     /**
      * parses an MDIdentifierType element and associates the identifier with the resource.
      */
@@ -394,12 +417,12 @@ public class Iso19115ToRdfMapper {
     }
 
     /**
-     * parses and associates the responsibleParty as a new Resource with the ownerResource.
+     * parses and associates the responsibleParty as a new Resource with the resource.
      * @return the created Resource for the responsibleParty
      */
     private static Resource parseResponsibleParty(
             Model model,
-            Resource ownerResource,
+            Resource resource,
             CIResponsiblePartyType responsibleParty) throws OXFException
     {
         if (responsibleParty.getIndividualName() != null) {
@@ -462,20 +485,20 @@ public class Iso19115ToRdfMapper {
             if (responsibleParty.getRole() != null) {
                 String contactRoleCode = responsibleParty.getRole().getCIRoleCode().getCodeListValue();
                 if (contactRoleCode != null && contactRoleCode.equals("publisher")) {
-                    ownerResource.addProperty(DC.publisher, personResource);
+                    resource.addProperty(DC.publisher, personResource);
                 }
                 else if (contactRoleCode != null && contactRoleCode.equals("distributor")) {
-                    ownerResource.addProperty(DC.publisher, personResource);
+                    resource.addProperty(DC.publisher, personResource);
                 }
                 else if (contactRoleCode != null && contactRoleCode.equals("pointOfContact")) {
-                    ownerResource.addProperty(DC.creator, personResource);
+                    resource.addProperty(DC.creator, personResource);
                 }
                 else if (contactRoleCode != null && contactRoleCode.equals("processor")) {
                     // this 'if' means we are dealing with a provenance processor ... 
-                    ownerResource.addProperty(PROV.influencer, personResource);
+                    resource.addProperty(PROV.influencer, personResource);
                     // ... so add further properties:
                     personResource.addProperty(RDF.type, PROV.Person);
-                    ownerResource.addProperty(PROV.wasAssociatedWith, personResource);
+                    resource.addProperty(PROV.wasAssociatedWith, personResource);
                 }
                 else {
                     throw new OXFException("Contact role code '" + contactRoleCode + "' not supported.");

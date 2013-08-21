@@ -1,4 +1,4 @@
-package org.n52.lod;
+package org.n52.lod.csw;
 
 import java.io.IOException;
 import java.util.Properties;

@@ -1,5 +1,5 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-
+ 
 	<parent>
 		<groupId>org.n52</groupId>
 		<artifactId>52-North</artifactId>
@@ -62,7 +62,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>org.n52.lod.CSWLoDEnabler</mainClass>
+							<mainClass>org.n52.lod.csw.CSWLoDEnabler</mainClass>
 						</manifest>
 					</archive>
 					<descriptorRefs>
@@ -84,7 +84,11 @@
 
 	<dependencies>
 
-		<!-- com.virtuoso.jdbc4 -Dversion=1.0.0 -Dpackaging=jar -->
+		<dependency>
+			<groupId>org.n52.sensorweb</groupId>
+			<artifactId>52n-xml-gmi-v20050620</artifactId>
+			<version>1.1.6-SNAPSHOT</version>
+		</dependency>
 
 		<dependency>
 			<groupId>com.virtuoso</groupId>

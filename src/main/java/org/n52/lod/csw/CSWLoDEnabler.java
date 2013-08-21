@@ -1,4 +1,4 @@
-package org.n52.lod;
+package org.n52.lod.csw;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,6 +8,7 @@ import net.opengis.cat.csw.x202.BriefRecordType;
 import net.opengis.cat.csw.x202.GetRecordsResponseDocument;
 import net.opengis.cat.csw.x202.SearchResultsType;
 
+import org.n52.lod.csw.mapping.IsoToRdfMapper;
 import org.purl.dc.elements.x11.SimpleLiteral;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +31,7 @@ public class CSWLoDEnabler {
     public static void main(String[] args) throws Exception
     {
         
-        run(2000, 10);
+        runOverAll();
     }
     
     public static void runOverAll () throws Exception {
@@ -89,7 +90,7 @@ public class CSWLoDEnabler {
             for (int i = 0; i < recordIdList.size(); i++) {
                 LOGGER.info("Processing record number " + i);
                 String recordDescription = csw.executeGetRecordsById(recordIdList.get(i));
-                model = Iso19115ToRdfMapper.addGetRecordByIdResponseToModel(model, recordDescription);
+                model = IsoToRdfMapper.addGetRecordByIdResponseToModel(model, recordDescription);
             }
         } catch (Exception e) {
             e.printStackTrace();

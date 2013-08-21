@@ -1,9 +1,11 @@
-package org.n52.lod;
+package org.n52.lod.csw;
 
 import java.io.File;
 
 import junit.framework.TestCase;
 
+import org.n52.lod.csw.CatalogInteractor;
+import org.n52.lod.csw.Constants;
 import org.n52.util.IoUtils;
 
 public class CatalogInteractorTestManual extends TestCase {
