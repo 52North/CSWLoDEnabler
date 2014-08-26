@@ -1,5 +1,6 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
- 
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
 	<parent>
 		<groupId>org.n52</groupId>
 		<artifactId>52-North</artifactId>
@@ -15,7 +16,7 @@
 	<name>52°North CSW to Linked Data Transformer</name>
 
 	<properties>
-		<slf4j.version>1.7.5</slf4j.version>
+		<slf4j.version>1.7.7</slf4j.version>
 		<timestamp>${maven.build.timestamp}</timestamp>
 		<maven.build.timestamp.format>yyyyMMdd-HHmm</maven.build.timestamp.format>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -37,16 +38,8 @@
 				</configuration>
 			</plugin>
 			<plugin>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<configuration>
-					<excludes>
-						<exclude>**/*Manual.java</exclude>
-					</excludes>
-				</configuration>
-			</plugin>
-			<plugin>
 				<artifactId>maven-jar-plugin</artifactId>
-				<version>2.4</version>
+				<version>2.5</version>
 				<configuration>
 					<archive>
 						<manifest>
@@ -56,9 +49,10 @@
 				</configuration>
 			</plugin>
 
-			<!-- This creates an executable jar  -->
+			<!-- This creates an executable jar -->
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
+				<version>2.4.1</version>
 				<configuration>
 					<archive>
 						<manifest>
@@ -86,13 +80,23 @@
 
 		<dependency>
 			<groupId>org.n52.sensorweb</groupId>
-			<artifactId>52n-xml-gmi-v20050620</artifactId>
-			<version>1.1.6-SNAPSHOT</version>
+			<artifactId>52n-xml-gmi-v01</artifactId>
+			<version>2.0.1-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>org.n52.sensorweb</groupId>
+			<artifactId>52n-xml-gco-v20120713</artifactId>
+			<version>2.0.1-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>org.n52.sensorweb</groupId>
+			<artifactId>52n-xml-gmd-v20120713</artifactId>
+			<version>2.0.1-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.virtuoso</groupId>
-			<artifactId>virt_jena</artifactId>
+			<artifactId>virt_jena2</artifactId>
 			<version>1.0.0</version>
 		</dependency>
 		<dependency>
@@ -100,17 +104,17 @@
 			<artifactId>virtjdbc3</artifactId>
 			<version>1.0.0</version>
 		</dependency>
-		<dependency>
-			<groupId>com.virtuoso</groupId>
-			<artifactId>virtjdbc4</artifactId>
-			<version>1.0.0</version>
-		</dependency>
+		<!-- <dependency> -->
+		<!-- <groupId>com.virtuoso</groupId> -->
+		<!-- <artifactId>virtjdbc4</artifactId> -->
+		<!-- <version>1.0.0</version> -->
+		<!-- </dependency> -->
 
 		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>apache-jena-libs</artifactId>
 			<type>pom</type>
-			<version>2.10.1</version>
+			<version>2.12.0</version>
 		</dependency>
 
 		<dependency>
@@ -123,19 +127,19 @@
 		<dependency>
 			<groupId>org.n52.sensorweb</groupId>
 			<artifactId>oxf-csw-adapter</artifactId>
-			<version>2.0.0-alpha.3-SNAPSHOT</version>
+			<version>2.0.0-alpha.3</version>
 		</dependency>
 
 		<!-- LOGGING DEPENDENCIES -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-			<version>1.7.5</version>
+			<version>${slf4j.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-log4j12</artifactId>
-			<version>1.7.5</version>
+			<version>${slf4j.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>log4j</groupId>
@@ -169,41 +173,6 @@
 			</releases>
 			<snapshots>
 				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-		<repository>
-			<id>n52-snapshots</id>
-			<name>52n Snapshots</name>
-			<url>http://52north.org/maven/repo/snapshots/</url>
-			<releases>
-				<enabled>false</enabled>
-			</releases>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</repository>
-		<repository>
-			<id>apache</id>
-			<name>apache Releases</name>
-			<url>http://people.apache.org/repo/m2-snapshot-repository/</url>
-			<releases>
-				<enabled>false</enabled>
-			</releases>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</repository>
-		<repository>
-			<id>jboss-public-repository-group</id>
-			<name>JBoss Public Maven Repository Group</name>
-			<url>http://repository.jboss.org/nexus/content/groups/public</url>
-			<releases>
-				<enabled>true</enabled>
-				<updatePolicy>never</updatePolicy>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-				<updatePolicy>never</updatePolicy>
 			</snapshots>
 		</repository>
 	</repositories>
