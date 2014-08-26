@@ -1,43 +1,41 @@
 package org.n52.lod.csw;
 
-import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
-import junit.framework.TestCase;
-
-import org.n52.lod.csw.CatalogInteractor;
-import org.n52.lod.csw.Constants;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.n52.util.IoUtils;
 
-public class CatalogInteractorTestManual extends TestCase {
+public class CatalogInteractorTestManual {
+    
+    private static Path tempdir;
 
-    public void testExecuteGetRecords()
-    {
-        try {
-            String result = new CatalogInteractor().executeGetRecords(10, 2000);
-            
-            IoUtils.saveFile(new File("c:/temp/catalogResult_GetRecords.xml"), result);
-            
-            System.out.println(result);
-        } catch (Exception e) {
-            e.printStackTrace();
+    @BeforeClass
+    public static void tempdir() throws IOException {
+         tempdir = Files.createTempDirectory("csw2lod_");
+    }
+    
+    @Test
+    public void testExecuteGetRecords() throws Exception {
+        String result = new CatalogInteractor().executeGetRecords(10, 2000);
+        
+        Path file = Files.createFile(tempdir.resolve("catalogResult_GetRecords.xml"));
+        
+        IoUtils.saveFile(file.toFile(), result);
 
-            fail();
-        }
+        System.out.println("Saved file to " + file);
     }
 
-    public void testExecuteGetRecordsById()
-    {
-        try {
-            String result = new CatalogInteractor().executeGetRecordsById(Constants.getInstance().getTestRecordId());
-            
-            IoUtils.saveFile(new File("c:/temp/catalogResult_GetRecordsById.xml"), result);
-            
-            System.out.println(result);
-        } catch (Exception e) {
-            e.printStackTrace();
+    @Test
+    public void testExecuteGetRecordsById() throws IOException, Exception {
+        String result = new CatalogInteractor().executeGetRecordsById(Constants.getInstance().getTestRecordId());
 
-            fail();
-        }
+        Path file = Files.createFile(tempdir.resolve("catalogResult_GetRecordsById.xml"));
+        IoUtils.saveFile(file.toFile(), result);
+
+        System.out.println("Saved file to " + file);
     }
 
 }

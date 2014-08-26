@@ -2,6 +2,7 @@ package org.n52.lod.csw;
 
 import java.io.IOException;
 
+import org.junit.Test;
 import org.n52.lod.csw.CatalogInteractor;
 import org.n52.lod.csw.Constants;
 import org.n52.lod.csw.mapping.IsoToRdfMapper;
@@ -19,32 +20,33 @@ import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.RDFNode;
 
-public class VirtuosoInteractorTestManual extends TestCase {
-    
-    public void testLoadVirtuoso() throws IOException
-    {
+public class VirtuosoInteractorTestManual {
 
-        VirtGraph graph = new VirtGraph(Constants.getInstance().getUriGraph(), Constants.getInstance().getUrlVirtuosoJdbc(), Constants.getInstance().getVirtuosoUser(), Constants.getInstance().getVirtuosoPass());
+    @Test
+    public void testLoadVirtuoso() throws Exception {
+
+        VirtGraph graph =
+                new VirtGraph(Constants.getInstance().getUriGraph(), Constants.getInstance().getUrlVirtuosoJdbc(), Constants.getInstance().getVirtuosoUser(), Constants.getInstance().getVirtuosoPass());
 
         Model model = ModelFactory.createModelForGraph(graph);
-        
+
         try {
             String recordDescription = new CatalogInteractor().executeGetRecordsById(Constants.getInstance().getTestRecordId());
 
-            model = IsoToRdfMapper.addGetRecordByIdResponseToModel(model, recordDescription);
+            IsoToRdfMapper mapper = new IsoToRdfMapper();
+            model = mapper.addGetRecordByIdResponseToModel(model, recordDescription);
 
-        } catch (Exception e) {
-            e.printStackTrace();
         } finally {
             model.close();
         }
     }
 
-    public void testQueryVirtuoso() throws IOException
-    {
+    @Test
+    public void testQueryVirtuoso() throws IOException {
 
         /* STEP 1 */
-        VirtGraph set = new VirtGraph(Constants.getInstance().getUriGraph(), Constants.getInstance().getUrlVirtuosoJdbc(), Constants.getInstance().getVirtuosoUser(), Constants.getInstance().getVirtuosoPass());
+        VirtGraph set =
+                new VirtGraph(Constants.getInstance().getUriGraph(), Constants.getInstance().getUrlVirtuosoJdbc(), Constants.getInstance().getVirtuosoUser(), Constants.getInstance().getVirtuosoPass());
 
         /* STEP 2 */
         /* Select all data in virtuoso */

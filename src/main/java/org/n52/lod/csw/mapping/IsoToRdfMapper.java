@@ -9,7 +9,6 @@ import org.apache.xmlbeans.XmlOptions;
 import org.isotc211.x2005.gco.CharacterStringPropertyType;
 import org.isotc211.x2005.gmd.AbstractMDIdentificationType;
 import org.isotc211.x2005.gmd.CIAddressType;
-import org.isotc211.x2005.gmd.CICitationPropertyType;
 import org.isotc211.x2005.gmd.CICitationType;
 import org.isotc211.x2005.gmd.CIContactType;
 import org.isotc211.x2005.gmd.CIDatePropertyType;
@@ -32,10 +31,13 @@ import org.isotc211.x2005.gmd.MDReferenceSystemPropertyType;
 import org.isotc211.x2005.gmd.MDScopeCodePropertyType;
 import org.isotc211.x2005.gmd.MDTopicCategoryCodePropertyType;
 import org.isotc211.x2005.gmd.RSIdentifierType;
+import org.isotc211.x2005.gmi.LEProcessStepType;
 import org.n52.lod.csw.Constants;
 import org.n52.lod.vocab.PROV;
 import org.n52.oxf.OXFException;
 import org.n52.oxf.valueDomains.time.TimeFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Node;
 
 import com.hp.hpl.jena.rdf.model.Model;
@@ -48,17 +50,14 @@ import com.hp.hpl.jena.vocabulary.DCTerms;
 import com.hp.hpl.jena.vocabulary.RDF;
 import com.hp.hpl.jena.vocabulary.VCARD;
 
-import fr.ign.eden.xsd.metafor.x20050620.gmi.LEProcessStepType;
-import fr.ign.eden.xsd.metafor.x20050620.gmi.LEProcessingPropertyType;
-import fr.ign.eden.xsd.metafor.x20050620.gmi.LEProcessingType;
-
 /**
  * This class maps CSW records encoded as ISO 19115 to RDF.
  *  
- * @author <a href="mailto:broering@52north.org">Arne Broering</a>
+ * @author <a href="mailto:broering@52north.org">Arne Broering</a>, Daniel Nüst
  */
 public class IsoToRdfMapper {
     
+    // TODO move dynamic constants to a config file (URI_BASE, project name, ..)
     public static final String URI_BASE = "http://glues.52north.org/resource/";
     public static final String URI_BASE_PERSONS = URI_BASE + "person/";
     public static final String URI_BASE_ORGANIZATIONS = URI_BASE + "organization/";
@@ -72,7 +71,13 @@ public class IsoToRdfMapper {
     public static final String GLUES_PROJECT_NAME_SHORT = "GLUES";
     public static final String GLUES_PROJECT_URL = "http://modul-a.nachhaltiges-landmanagement.de/en/scientific-coordination-glues/";
     
-    public static Model createModelFromGetRecordByIdResponse(String getRecordByIdResponse) throws Exception
+    private static Logger log = LoggerFactory.getLogger(IsoToRdfMapper.class);
+    
+    public IsoToRdfMapper() {
+        log.debug("NEW {}", this);
+    }
+    
+    public Model createModelFromGetRecordByIdResponse(String getRecordByIdResponse) throws Exception
     { 
         // create an empty Model
         Model model = ModelFactory.createDefaultModel();
@@ -80,7 +85,10 @@ public class IsoToRdfMapper {
         return addGetRecordByIdResponseToModel(model, getRecordByIdResponse);
     }
 
-    public static Model addGetRecordByIdResponseToModel(Model model, String getRecordByIdResponse) throws Exception
+    /**
+     * the method that does the actual work
+     */
+    public Model addGetRecordByIdResponseToModel(Model model, String getRecordByIdResponse) throws Exception
     {
         model.setNsPrefix("rdf", RDF.getURI());
         model.setNsPrefix("foaf", FOAF.getURI());

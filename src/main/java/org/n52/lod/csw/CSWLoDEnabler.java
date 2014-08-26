@@ -58,6 +58,7 @@ public class CSWLoDEnabler {
      * @throws Exception 
      */
     private static void run (int startPos, int maxRecords) throws Exception {
+        Constants cons = Constants.getInstance();
 
         CatalogInteractor csw = new CatalogInteractor();
         
@@ -79,25 +80,30 @@ public class CSWLoDEnabler {
                 
                 recordIdList.add(recordId);
             }
-        } 
+        }
         
-        VirtGraph graph = new VirtGraph(Constants.getInstance().getUriGraph(), Constants.getInstance().getUrlVirtuosoJdbc(), Constants.getInstance().getVirtuosoUser(), Constants.getInstance().getVirtuosoPass());
+        LOGGER.debug("Found {} record ids based on catalog response with {} matched and {} returned", recordIdList.size(), searchResults.getNumberOfRecordsMatched(), searchResults.getNumberOfRecordsReturned());
+        
+        VirtGraph graph = new VirtGraph(cons.getUriGraph(), cons.getUrlVirtuosoJdbc(), cons.getVirtuosoUser(), cons.getVirtuosoPass());
         Model model = ModelFactory.createModelForGraph(graph);
         
         // request detailed description for each record and add to model:
-        LOGGER.info("Processing " + recordIdList.size() + " records.");
+        LOGGER.info("Processing {} records into model {}", recordIdList.size(), model);
+        IsoToRdfMapper mapper = new IsoToRdfMapper();
         try {
             for (int i = 0; i < recordIdList.size(); i++) {
-                LOGGER.info("Processing record number " + i);
+                LOGGER.debug("Processing record number {}", i);
                 String recordDescription = csw.executeGetRecordsById(recordIdList.get(i));
-                model = IsoToRdfMapper.addGetRecordByIdResponseToModel(model, recordDescription);
+                model = mapper.addGetRecordByIdResponseToModel(model, recordDescription);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (RuntimeException e) {
             LOGGER.error(e.getLocalizedMessage());
         } finally {
             model.close();
         }
+        
+
+        LOGGER.debug("DONE - model: {} | graph: {}", model, graph);
     }
     
 }
