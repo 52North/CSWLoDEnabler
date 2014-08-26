@@ -4,10 +4,17 @@
 		<Console name="Console" target="SYSTEM_OUT">
 			<PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n" />
 		</Console>
+		<File name="MyFile" immediateFlush="false" fileName="logs/csw2lod.log">
+			<PatternLayout pattern="%d %p %c{1.} [%t] %m%n" />
+		</File>
+		<Async name="Async">
+			<AppenderRef ref="MyFile" />
+		</Async>
 	</Appenders>
 	<Loggers>
 		<Logger name="org.n52.lod" level="debug" additivity="false">
 			<AppenderRef ref="Console" />
+			<AppenderRef ref="Async"/>
 		</Logger>
 		<Root level="error">
 			<AppenderRef ref="Console" />

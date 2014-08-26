@@ -16,8 +16,7 @@ public class CatalogInteractor {
     private static final Logger LOGGER = LoggerFactory.getLogger(CatalogInteractor.class);
 
     public String executeGetRecords(int maxRecords,
-            int startPos) throws Exception
-    {
+            int startPos) throws Exception {
 
         CSWAdapter adapter = new CSWAdapter();
 
@@ -33,15 +32,17 @@ public class CatalogInteractor {
         Constants constants = Constants.getInstance();
         String cswUrl = constants.getUrlCSW();
         Operation getRecOp = new Operation(CSWAdapter.GET_RECORDS, cswUrl + "?", cswUrl);
+        
+        LOGGER.debug("Executing operation to {} : {}", cswUrl, getRecOp);
         OperationResult opResult = adapter.doOperation(getRecOp, paramCon);
 
         String result = new String(opResult.getIncomingResult());
+        LOGGER.debug("Received (excerpt): {}", result.substring(0, 17*42));
 
         return result;
     }
 
-    public String executeGetRecordsById(String recordID) throws Exception
-    {
+    public String executeGetRecordsById(String recordID) throws Exception {
         LOGGER.info("Calling GetRecordsById for record '" + recordID + "'");
 
         CSWAdapter adapter = new CSWAdapter();
@@ -58,8 +59,12 @@ public class CatalogInteractor {
         paramCon.addParameterShell(CSWRequestBuilder.GET_RECORD_BY_ID_ELEMENT_SET_NAME, elementSetName);
         paramCon.addParameterShell(CSWRequestBuilder.GET_RECORD_BY_ID_OUTPUT_SCHEMA, outputSchema);
 
-        OperationResult opResult = adapter.doOperation(new Operation(CSWAdapter.GET_RECORD_BY_ID, Constants.getInstance().getUrlCSW() + "?", Constants.getInstance().getUrlCSW()), paramCon);
+        Constants constants = Constants.getInstance();
+        String cswUrl = constants.getUrlCSW();
+        Operation op = new Operation(CSWAdapter.GET_RECORD_BY_ID, cswUrl + "?", cswUrl);
 
+        LOGGER.debug("Executing operation to {} : {}", cswUrl, op);
+        OperationResult opResult = adapter.doOperation(op, paramCon);
         String result = new String(opResult.getIncomingResult());
 
         return result;

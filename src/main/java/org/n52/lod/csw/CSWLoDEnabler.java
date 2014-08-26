@@ -27,66 +27,72 @@ import com.hp.hpl.jena.rdf.model.ModelFactory;
 public class CSWLoDEnabler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CSWLoDEnabler.class);
-    
-    public static void main(String[] args) throws Exception
-    {
-        
-        runOverAll();
+
+    public static void main(String[] args) {
+        try {
+            runOverAll();
+        } catch (Exception e) {
+            LOGGER.error("Error running CSW to LOD", e);
+        }
     }
-    
-    public static void runOverAll () throws Exception {
+
+    public static void runOverAll() throws Exception {
+        LOGGER.info("STARTING CSW to LOD..");
 
         long timeStart = System.currentTimeMillis();
-        
+
         int recordsInTotal = 2427;
         int startPos = 1;
-        
+
         while (startPos < recordsInTotal) {
-            run (startPos, 100);
+            run(startPos, 100);
             startPos = startPos + 100;
         }
-        
+
         long timeDuration = System.currentTimeMillis() - timeStart;
-        LOGGER.info("duration = " + timeDuration);
+        LOGGER.info("DONE. duration = {}", timeDuration);
     }
-    
+
     /**
-     * executes the program:
-     * 1.) retrieves the record descriptions from the CSW
-     * 2.) transforms the descriptions to RDF
-     * 3.) inserts the produced RDF into the triplestore
-     * @throws Exception 
+     * executes the program: 1.) retrieves the record descriptions from the CSW
+     * 2.) transforms the descriptions to RDF 3.) inserts the produced RDF into
+     * the triplestore
+     * 
+     * @throws Exception
      */
-    private static void run (int startPos, int maxRecords) throws Exception {
+    private static void run(int startPos,
+            int maxRecords) throws Exception {
+        LOGGER.info("Transfer {} records (max) from {}", maxRecords, startPos);
         Constants cons = Constants.getInstance();
 
         CatalogInteractor csw = new CatalogInteractor();
-        
+
         String result = csw.executeGetRecords(maxRecords, startPos);
-        
+
         GetRecordsResponseDocument responseDoc = GetRecordsResponseDocument.Factory.parse(result);
         SearchResultsType searchResults = responseDoc.getGetRecordsResponse().getSearchResults();
-        
+
         // collect all record IDs:
         List<String> recordIdList = new ArrayList<String>();
         AbstractRecordType[] abstractRecordArray = searchResults.getAbstractRecordArray();
         for (int i = 0; i < abstractRecordArray.length; i++) {
             BriefRecordType abstractRecord = BriefRecordType.Factory.parse(abstractRecordArray[i].xmlText());
-            
+
             if (abstractRecord.getIdentifierArray() != null && abstractRecord.getIdentifierArray().length >= 1) {
 
                 SimpleLiteral identifierLiteral = SimpleLiteral.Factory.parse(abstractRecord.getIdentifierArray(0).getDomNode());
                 String recordId = identifierLiteral.getDomNode().getChildNodes().item(0).getChildNodes().item(0).getNodeValue();
-                
+
                 recordIdList.add(recordId);
             }
         }
-        
-        LOGGER.debug("Found {} record ids based on catalog response with {} matched and {} returned", recordIdList.size(), searchResults.getNumberOfRecordsMatched(), searchResults.getNumberOfRecordsReturned());
-        
+
+        LOGGER.debug("Found {} record ids based on catalog response with {} matched and {} returned", recordIdList.size(), searchResults.getNumberOfRecordsMatched(),
+                searchResults.getNumberOfRecordsReturned());
+
         VirtGraph graph = new VirtGraph(cons.getUriGraph(), cons.getUrlVirtuosoJdbc(), cons.getVirtuosoUser(), cons.getVirtuosoPass());
         Model model = ModelFactory.createModelForGraph(graph);
-        
+
         // request detailed description for each record and add to model:
         LOGGER.info("Processing {} records into model {}", recordIdList.size(), model);
         IsoToRdfMapper mapper = new IsoToRdfMapper();
@@ -101,9 +107,8 @@ public class CSWLoDEnabler {
         } finally {
             model.close();
         }
-        
 
         LOGGER.debug("DONE - model: {} | graph: {}", model, graph);
     }
-    
+
 }
