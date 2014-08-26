@@ -1,9 +1,11 @@
 package org.n52.lod.csw.mapping;
 
+import java.io.IOException;
 import java.util.Calendar;
 
 import net.opengis.cat.csw.x202.GetRecordByIdResponseDocument;
 
+import org.apache.xmlbeans.XmlException;
 import org.apache.xmlbeans.XmlObject;
 import org.apache.xmlbeans.XmlOptions;
 import org.isotc211.x2005.gco.CharacterStringPropertyType;
@@ -89,7 +91,7 @@ public class IsoToRdfMapper {
         log.debug("NEW {}", this);
     }
 
-    public Model createModelFromGetRecordByIdResponse(String getRecordByIdResponse) throws Exception {
+    public Model createModelFromGetRecordByIdResponse(String getRecordByIdResponse) throws XmlException, OXFException, IOException {
         // create an empty Model
         Model model = ModelFactory.createDefaultModel();
 
@@ -98,9 +100,13 @@ public class IsoToRdfMapper {
 
     /**
      * the method that does the actual work
+     * 
+     * @throws XmlException
+     * @throws OXFException
+     * @throws IOException 
      */
     public Model addGetRecordByIdResponseToModel(Model model,
-            String getRecordByIdResponse) throws Exception {
+            String getRecordByIdResponse) throws XmlException, OXFException, IOException {
         model.setNsPrefix("rdf", RDF.getURI());
         model.setNsPrefix("foaf", FOAF.getURI());
         model.setNsPrefix("dc", DC.getURI());
@@ -119,7 +125,7 @@ public class IsoToRdfMapper {
 
         MDMetadataType xb_metadata = MDMetadataDocument.Factory.parse(xb_MDMetadataNode).getMDMetadata();
         String recordId = xb_metadata.getFileIdentifier().getCharacterString();
-        
+
         // create the record resource
         Resource recordResource = model.createResource(URI_BASE_RECORDS + recordId);
         log.debug("Adding {} as resource {}", recordId, recordResource);
@@ -461,6 +467,7 @@ public class IsoToRdfMapper {
      * resource.
      * 
      * @return the created Resource for the responsibleParty
+     * @throws OXFException 
      */
     private static Resource parseResponsibleParty(Model model,
             Resource resource,
@@ -538,12 +545,14 @@ public class IsoToRdfMapper {
                     personResource.addProperty(RDF.type, PROV.Person);
                     resource.addProperty(PROV.wasAssociatedWith, personResource);
                 } else {
+                    log.warn("Unsupported contact role {}: \n{}", contactRoleCode, responsibleParty.xmlText());
                     throw new OXFException("Contact role code '" + contactRoleCode + "' not supported.");
                 }
             }
 
             return personResource;
         } else {
+            log.warn("Unsupported contact for resource {}: \n{}", resource, responsibleParty.xmlText());
             throw new OXFException("Non-individual contacts not yet supported.");
         }
     }

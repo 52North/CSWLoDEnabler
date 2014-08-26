@@ -8,7 +8,9 @@ import net.opengis.cat.csw.x202.BriefRecordType;
 import net.opengis.cat.csw.x202.GetRecordsResponseDocument;
 import net.opengis.cat.csw.x202.SearchResultsType;
 
+import org.jfree.util.Log;
 import org.n52.lod.csw.mapping.IsoToRdfMapper;
+import org.n52.oxf.OXFException;
 import org.purl.dc.elements.x11.SimpleLiteral;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,18 +28,18 @@ import com.hp.hpl.jena.rdf.model.ModelFactory;
  */
 public class CSWLoDEnabler {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(CSWLoDEnabler.class);
+    private static final Logger log = LoggerFactory.getLogger(CSWLoDEnabler.class);
 
     public static void main(String[] args) {
         try {
             runOverAll();
         } catch (Exception e) {
-            LOGGER.error("Error running CSW to LOD", e);
+            log.error("Error running CSW to LOD", e);
         }
     }
 
     public static void runOverAll() throws Exception {
-        LOGGER.info("STARTING CSW to LOD..");
+        log.info("STARTING CSW to LOD..");
 
         long timeStart = System.currentTimeMillis();
 
@@ -50,7 +52,7 @@ public class CSWLoDEnabler {
         }
 
         long timeDuration = System.currentTimeMillis() - timeStart;
-        LOGGER.info("DONE. duration = {}", timeDuration);
+        log.info("DONE. duration = {}", timeDuration);
     }
 
     /**
@@ -62,7 +64,7 @@ public class CSWLoDEnabler {
      */
     private static void run(int startPos,
             int maxRecords) throws Exception {
-        LOGGER.info("Transfer {} records (max) from {}", maxRecords, startPos);
+        log.info("Transfer {} records (max) from {}", maxRecords, startPos);
         Constants cons = Constants.getInstance();
 
         CatalogInteractor csw = new CatalogInteractor();
@@ -87,28 +89,33 @@ public class CSWLoDEnabler {
             }
         }
 
-        LOGGER.debug("Found {} record ids based on catalog response with {} matched and {} returned", recordIdList.size(), searchResults.getNumberOfRecordsMatched(),
+        log.debug("Found {} record ids based on catalog response with {} matched and {} returned", recordIdList.size(), searchResults.getNumberOfRecordsMatched(),
                 searchResults.getNumberOfRecordsReturned());
 
         VirtGraph graph = new VirtGraph(cons.getUriGraph(), cons.getUrlVirtuosoJdbc(), cons.getVirtuosoUser(), cons.getVirtuosoPass());
         Model model = ModelFactory.createModelForGraph(graph);
 
         // request detailed description for each record and add to model:
-        LOGGER.info("Processing {} records into model {}", recordIdList.size(), model);
+        log.info("Processing {} records into model {}", recordIdList.size(), model);
         IsoToRdfMapper mapper = new IsoToRdfMapper();
         try {
             for (int i = 0; i < recordIdList.size(); i++) {
-                LOGGER.debug("Processing record number {}", i);
-                String recordDescription = csw.executeGetRecordsById(recordIdList.get(i));
-                model = mapper.addGetRecordByIdResponseToModel(model, recordDescription);
+                log.debug("Processing record number {}/{}", i, maxRecords);
+
+                try {
+                    String recordDescription = csw.executeGetRecordsById(recordIdList.get(i));
+                    model = mapper.addGetRecordByIdResponseToModel(model, recordDescription);
+                } catch (OXFException e) {
+                    log.error("Error processing record {}", i, e);
+                }
             }
+
+            log.debug("DONE - model: {} | graph: {}", model, graph);
         } catch (RuntimeException e) {
-            LOGGER.error(e.getLocalizedMessage());
+            log.error(e.getLocalizedMessage());
         } finally {
             model.close();
         }
-
-        LOGGER.debug("DONE - model: {} | graph: {}", model, graph);
     }
 
 }
