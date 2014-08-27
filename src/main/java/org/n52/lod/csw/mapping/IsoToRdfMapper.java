@@ -7,7 +7,6 @@ import net.opengis.cat.csw.x202.GetRecordByIdResponseDocument;
 
 import org.apache.xmlbeans.XmlException;
 import org.apache.xmlbeans.XmlObject;
-import org.apache.xmlbeans.XmlOptions;
 import org.isotc211.x2005.gco.CharacterStringPropertyType;
 import org.isotc211.x2005.gmd.AbstractMDIdentificationType;
 import org.isotc211.x2005.gmd.CIAddressType;
@@ -47,8 +46,8 @@ import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.Property;
 import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.sparql.vocabulary.FOAF;
-import com.hp.hpl.jena.vocabulary.DC;
 import com.hp.hpl.jena.vocabulary.DCTerms;
+import com.hp.hpl.jena.vocabulary.DC_11;
 import com.hp.hpl.jena.vocabulary.RDF;
 import com.hp.hpl.jena.vocabulary.VCARD;
 
@@ -91,7 +90,7 @@ public class IsoToRdfMapper {
         log.debug("NEW {}", this);
     }
 
-    public Model createModelFromGetRecordByIdResponse(String getRecordByIdResponse) throws XmlException, OXFException, IOException {
+    public Model createModelFromGetRecordByIdResponse(GetRecordByIdResponseDocument getRecordByIdResponse) throws XmlException, OXFException, IOException {
         // create an empty Model
         Model model = ModelFactory.createDefaultModel();
 
@@ -103,24 +102,20 @@ public class IsoToRdfMapper {
      * 
      * @throws XmlException
      * @throws OXFException
-     * @throws IOException 
+     * @throws IOException
      */
     public Model addGetRecordByIdResponseToModel(Model model,
-            String getRecordByIdResponse) throws XmlException, OXFException, IOException {
+            GetRecordByIdResponseDocument xb_getRecordByIdResponse) throws XmlException, OXFException, IOException {
         model.setNsPrefix("rdf", RDF.getURI());
         model.setNsPrefix("foaf", FOAF.getURI());
-        model.setNsPrefix("dc", DC.getURI());
+        model.setNsPrefix("dc", DC_11.getURI());
         model.setNsPrefix("dcterms", DCTerms.getURI());
         model.setNsPrefix("vcard", VCARD.getURI());
         model.setNsPrefix("prov", PROV.getURI());
 
-        XmlOptions xmlOptions = new XmlOptions();
-        xmlOptions.setCharacterEncoding("UTF-8");
-
         //
         // start reading GetRecordById response:
         //
-        GetRecordByIdResponseDocument xb_getRecordByIdResponse = GetRecordByIdResponseDocument.Factory.parse(getRecordByIdResponse, xmlOptions);
         Node xb_MDMetadataNode = xb_getRecordByIdResponse.getGetRecordByIdResponse().getDomNode().getChildNodes().item(0);
 
         MDMetadataType xb_metadata = MDMetadataDocument.Factory.parse(xb_MDMetadataNode).getMDMetadata();
@@ -133,14 +128,14 @@ public class IsoToRdfMapper {
         //
         // start adding RDF to model:
         //
-        addLiteral(recordResource, xb_metadata.getFileIdentifier(), DC.identifier);
-        addLiteral(recordResource, xb_metadata.getParentIdentifier(), DC.source);
-        addLiteral(recordResource, xb_metadata.getLanguage(), DC.language);
+        addLiteral(recordResource, xb_metadata.getFileIdentifier(), DC_11.identifier);
+        addLiteral(recordResource, xb_metadata.getParentIdentifier(), DC_11.source);
+        addLiteral(recordResource, xb_metadata.getLanguage(), DC_11.language);
 
         MDScopeCodePropertyType[] xb_hierarchyLevelArray = xb_metadata.getHierarchyLevelArray();
         for (int i = 0; i < xb_hierarchyLevelArray.length; i++) {
             String hierarchyLevelCode = xb_hierarchyLevelArray[i].getMDScopeCode().getCodeListValue();
-            recordResource.addProperty(DC.type, URI_BASE_TYPES + hierarchyLevelCode);
+            recordResource.addProperty(DC_11.type, URI_BASE_TYPES + hierarchyLevelCode);
         }
 
         // CharacterStringPropertyType[] xb_hierarchyLevelNameArray =
@@ -185,7 +180,7 @@ public class IsoToRdfMapper {
 
             // parsing abstract:
             addLiteral(recordResource, identification.getAbstract(), DCTerms.abstract_);
-            addLiteral(recordResource, identification.getAbstract(), DC.description);
+            addLiteral(recordResource, identification.getAbstract(), DC_11.description);
 
             // parsing pointOfContact:
             if (identification.getPointOfContactArray() != null) {
@@ -202,7 +197,7 @@ public class IsoToRdfMapper {
             if (identification.getDescriptiveKeywordsArray() != null) {
                 MDKeywordsPropertyType[] descriptiveKeywordArray = identification.getDescriptiveKeywordsArray();
                 for (int j = 0; j < descriptiveKeywordArray.length; j++) {
-                    addLiterals(recordResource, descriptiveKeywordArray[j].getMDKeywords().getKeywordArray(), DC.subject);
+                    addLiterals(recordResource, descriptiveKeywordArray[j].getMDKeywords().getKeywordArray(), DC_11.subject);
                 }
             }
 
@@ -220,7 +215,7 @@ public class IsoToRdfMapper {
             XmlObject[] xmlObjectArray = identification.selectChildren(Constants.getInstance().getNsGMD(), "topicCategory");
             for (int j = 0; j < xmlObjectArray.length; j++) {
                 MDTopicCategoryCodePropertyType topicCategory = (MDTopicCategoryCodePropertyType) xmlObjectArray[j];
-                recordResource.addLiteral(DC.subject, topicCategory.getMDTopicCategoryCode().toString());
+                recordResource.addLiteral(DC_11.subject, topicCategory.getMDTopicCategoryCode().toString());
             }
         }
 
@@ -293,7 +288,7 @@ public class IsoToRdfMapper {
 
                             if (processStep != null) {
 
-                                addLiteral(processStepResource, processStep.getDescription(), DC.description);
+                                addLiteral(processStepResource, processStep.getDescription(), DC_11.description);
 
                                 addLiteral(processStepResource, processStep.getRationale(), DCTerms.abstract_);
 
@@ -318,7 +313,7 @@ public class IsoToRdfMapper {
                                         Resource sourceResource = model.createResource();
                                         sourceResource.addProperty(RDF.type, PROV.Entity);
 
-                                        addLiteral(sourceResource, source.getDescription(), DC.description);
+                                        addLiteral(sourceResource, source.getDescription(), DC_11.description);
 
                                         if (source.getSourceCitation() != null) {
                                             parseCitation(recordResource, source.getSourceCitation().getCICitation());
@@ -389,7 +384,7 @@ public class IsoToRdfMapper {
     private static void parseCitation(Resource resource,
             CICitationType citation) throws OXFException {
         // parsing title:
-        addLiteral(resource, citation.getTitle(), DC.title);
+        addLiteral(resource, citation.getTitle(), DC_11.title);
 
         // tparsing date:
         String date = null;
@@ -459,7 +454,7 @@ public class IsoToRdfMapper {
             uri = identifier.getCode().getCharacterString();
         }
 
-        resource.addProperty(DC.identifier, uri);
+        resource.addProperty(DC_11.identifier, uri);
     }
 
     /**
@@ -467,7 +462,7 @@ public class IsoToRdfMapper {
      * resource.
      * 
      * @return the created Resource for the responsibleParty
-     * @throws OXFException 
+     * @throws OXFException
      */
     private static Resource parseResponsibleParty(Model model,
             Resource resource,
@@ -532,11 +527,11 @@ public class IsoToRdfMapper {
             if (responsibleParty.getRole() != null) {
                 String contactRoleCode = responsibleParty.getRole().getCIRoleCode().getCodeListValue();
                 if (contactRoleCode != null && contactRoleCode.equals("publisher")) {
-                    resource.addProperty(DC.publisher, personResource);
+                    resource.addProperty(DC_11.publisher, personResource);
                 } else if (contactRoleCode != null && contactRoleCode.equals("distributor")) {
-                    resource.addProperty(DC.publisher, personResource);
+                    resource.addProperty(DC_11.publisher, personResource);
                 } else if (contactRoleCode != null && contactRoleCode.equals("pointOfContact")) {
-                    resource.addProperty(DC.creator, personResource);
+                    resource.addProperty(DC_11.creator, personResource);
                 } else if (contactRoleCode != null && contactRoleCode.equals("processor")) {
                     // this 'if' means we are dealing with a provenance
                     // processor ...
@@ -551,10 +546,10 @@ public class IsoToRdfMapper {
             }
 
             return personResource;
-        } else {
-            log.warn("Unsupported contact for resource {}: \n{}", resource, responsibleParty.xmlText());
-            throw new OXFException("Non-individual contacts not yet supported.");
         }
+
+        log.warn("Unsupported contact for resource {}: \n{}", resource, responsibleParty.xmlText());
+        throw new OXFException("Non-individual contacts not yet supported.");
     }
 
     /**
@@ -576,9 +571,8 @@ public class IsoToRdfMapper {
         if (characterStringProperty != null) {
             resource.addLiteral(property, characterStringProperty.getCharacterString());
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
     /**
@@ -604,8 +598,7 @@ public class IsoToRdfMapper {
                 resource.addLiteral(property, characterStringPropertyArray[i].getCharacterString());
             }
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
 }

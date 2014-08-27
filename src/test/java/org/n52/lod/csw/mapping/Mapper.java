@@ -1,5 +1,8 @@
 package org.n52.lod.csw.mapping;
 
+import net.opengis.cat.csw.x202.GetRecordByIdResponseDocument;
+
+import org.apache.xmlbeans.XmlOptions;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -20,7 +23,9 @@ public class Mapper {
     @Test
     public void mapperMaps() throws Exception {
         String getRecordResp = Resources.toString(Resources.getResource("GetRecordByIdResponse_0.xml"), Charsets.UTF_8);
-        Model model = this.mapper.createModelFromGetRecordByIdResponse(getRecordResp);
+        GetRecordByIdResponseDocument xb_getRecordByIdResponse = GetRecordByIdResponseDocument.Factory.parse(getRecordResp, new XmlOptions());
+
+        Model model = this.mapper.createModelFromGetRecordByIdResponse(xb_getRecordByIdResponse);
         
         Graph graph = model.getGraph();
         System.out.println(model);

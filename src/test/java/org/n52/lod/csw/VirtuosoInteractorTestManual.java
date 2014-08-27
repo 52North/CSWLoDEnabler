@@ -2,12 +2,12 @@ package org.n52.lod.csw;
 
 import java.io.IOException;
 
+import net.opengis.cat.csw.x202.GetRecordByIdResponseDocument;
+
+import org.apache.xmlbeans.XmlOptions;
 import org.junit.Test;
-import org.n52.lod.csw.CatalogInteractor;
-import org.n52.lod.csw.Constants;
 import org.n52.lod.csw.mapping.IsoToRdfMapper;
 
-import junit.framework.TestCase;
 import virtuoso.jena.driver.VirtGraph;
 import virtuoso.jena.driver.VirtuosoQueryExecution;
 import virtuoso.jena.driver.VirtuosoQueryExecutionFactory;
@@ -32,9 +32,10 @@ public class VirtuosoInteractorTestManual {
 
         try {
             String recordDescription = new CatalogInteractor().executeGetRecordsById(Constants.getInstance().getTestRecordId());
+            GetRecordByIdResponseDocument xb_getRecordByIdResponse = GetRecordByIdResponseDocument.Factory.parse(recordDescription, new XmlOptions());
 
             IsoToRdfMapper mapper = new IsoToRdfMapper();
-            model = mapper.addGetRecordByIdResponseToModel(model, recordDescription);
+            model = mapper.addGetRecordByIdResponseToModel(model, xb_getRecordByIdResponse);
 
         } finally {
             model.close();
