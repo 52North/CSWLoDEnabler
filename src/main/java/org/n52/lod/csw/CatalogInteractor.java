@@ -72,7 +72,7 @@ public class CatalogInteractor {
         OperationResult opResult = adapter.doOperation(op, paramCon);
 
         String result = new String(opResult.getIncomingResult());
-        LOGGER.debug("Received (excerpt): {}", result.substring(0, 17 * 42));
+        LOGGER.debug("Received (excerpt): {}", result.substring(0, Math.min(result.length(), 17 * 42)));
         return result;
     }
 

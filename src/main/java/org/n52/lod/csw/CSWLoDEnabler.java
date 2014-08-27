@@ -2,6 +2,8 @@ package org.n52.lod.csw;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -15,6 +17,7 @@ import net.opengis.cat.csw.x202.SearchResultsType;
 import org.apache.xmlbeans.XmlException;
 import org.apache.xmlbeans.XmlOptions;
 import org.n52.lod.csw.mapping.IsoToRdfMapper;
+import org.n52.lod.vocab.PROV;
 import org.n52.oxf.OXFException;
 import org.n52.oxf.ows.ExceptionReport;
 import org.n52.oxf.util.web.HttpClientException;
@@ -24,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import virtuoso.jena.driver.VirtGraph;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.Files;
@@ -31,6 +35,11 @@ import com.hp.hpl.jena.graph.impl.GraphBase;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.ModelMaker;
+import com.hp.hpl.jena.sparql.vocabulary.FOAF;
+import com.hp.hpl.jena.vocabulary.DCTerms;
+import com.hp.hpl.jena.vocabulary.DC_11;
+import com.hp.hpl.jena.vocabulary.RDF;
+import com.hp.hpl.jena.vocabulary.VCARD;
 
 /**
  * This is the main class. It allows to start the application and to execute the
@@ -61,9 +70,65 @@ public class CSWLoDEnabler {
 
     private CatalogInteractor csw;
 
+    private Report report;
+
+    private static class Report {
+
+        public int added = 0;
+
+        public long recordNumber = 0;
+
+        public List<String> addedIds = Lists.newArrayList();
+
+        public Map<String, Object> retrievalIssues = Maps.newHashMap();
+
+        public Map<String, Object> issues = Maps.newHashMap();
+
+        public Report() {
+            //
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder builder = new StringBuilder();
+            builder.append("Report [added=");
+            builder.append(added);
+            builder.append(", recordNumber=");
+            builder.append(recordNumber);
+            builder.append(", ");
+            if (addedIds != null) {
+                builder.append("\n\t\taddedIds=");
+                builder.append(Arrays.toString(addedIds.toArray()));
+                builder.append(", ");
+            }
+            if (issues != null) {
+                builder.append("\n\t\tissue ids=");
+                builder.append(Arrays.toString(issues.keySet().toArray()));
+            }
+            if (issues != null) {
+                builder.append("\n\t\tretrievalIssueIds=");
+                builder.append(Arrays.toString(retrievalIssues.keySet().toArray()));
+            }
+            builder.append("]");
+            return builder.toString();
+        }
+
+        public String extendedToString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append(toString());
+            sb.append("\n\n\n********************** Issues **********************\n");
+            sb.append(Joiner.on(" ").withKeyValueSeparator(":").join(issues));
+            sb.append("\n\n\n***************** Retrieval Issues *****************\n");
+            sb.append(Joiner.on("\n").withKeyValueSeparator(":").join(retrievalIssues));
+            return sb.toString();
+        }
+    }
+
     public CSWLoDEnabler(boolean addToTripleStore, boolean saveToFile) throws IOException {
         this.addToTripleStore = addToTripleStore;
         this.saveToFile = saveToFile;
+        this.report = new Report();
+
         constants = Constants.getInstance();
         csw = new CatalogInteractor();
 
@@ -79,14 +144,20 @@ public class CSWLoDEnabler {
         }
     }
 
+    private void runOverAll() throws IOException {
+        runStartingFrom(1);
+    }
+
     /**
      * executes the program: 1.) retrieves the record descriptions from the CSW
      * 2.) transforms the descriptions to RDF 3.) inserts the produced RDF into
      * the triplestore
      * 
+     * @param startPos
+     * 
      * @throws IOException
      */
-    public void runOverAll() throws IOException {
+    public void runStartingFrom(int startPos) throws IOException {
         log.info("STARTING CSW to LOD..");
 
         if (!(addToTripleStore || saveToFile)) {
@@ -95,16 +166,6 @@ public class CSWLoDEnabler {
         }
 
         long timeStart = System.currentTimeMillis();
-
-        long recordsInTotal;
-        try {
-            recordsInTotal = csw.getNumberOfRecords();
-            log.debug("Retrieved number of records from server: {}", recordsInTotal);
-        } catch (IllegalStateException | HttpClientException | XmlException e) {
-            log.error("Could not retrieve number of records from catalog {}, falling back to {}", csw, FALLBACK_RECORDS_TOTAL, e);
-            recordsInTotal = FALLBACK_RECORDS_TOTAL;
-        }
-        int startPos = 1;
 
         GraphBase graph = null;
         if (addToTripleStore) {
@@ -116,35 +177,59 @@ public class CSWLoDEnabler {
         }
 
         Model fileModel = null;
+        File tempDir = null;
         if (saveToFile) {
-            File tempDir = Files.createTempDir();
+            tempDir = Files.createTempDir();
             ModelMaker fileModelMaker = ModelFactory.createFileModelMaker(tempDir.getAbsolutePath());
-            fileModel = fileModelMaker.createDefaultModel();
+            fileModel = configureModel(fileModelMaker.createDefaultModel());
             log.info("Saving triples to files in {}", tempDir);
         }
 
-        while (startPos < recordsInTotal) {
-            try {
-                Map<String, GetRecordByIdResponseDocument> records = retrieveRecords(startPos, NUMBER_OF_RECORDS_PER_ITERATION);
+        long recordsInTotal = FALLBACK_RECORDS_TOTAL;
+        try {
+            recordsInTotal = csw.getNumberOfRecords();
+            log.debug("Retrieved number of records from server: {}", recordsInTotal);
+        } catch (IllegalStateException | HttpClientException | XmlException e) {
+            log.error("Could not retrieve number of records from catalog {}, falling back to {}", csw, FALLBACK_RECORDS_TOTAL, e);
+        }
+        report.recordNumber = recordsInTotal;
 
-                if (addToTripleStore)
-                    addRecordsToTripleStore(records, graph);
-                if (saveToFile)
-                    addRecordsToModel(records, fileModel);
-            } catch (OXFException | ExceptionReport | XmlException e) {
-                log.error("Could not add records {} to {} to triple store", startPos, startPos + NUMBER_OF_RECORDS_PER_ITERATION, e);
+        while (startPos < recordsInTotal) {
+            Map<String, GetRecordByIdResponseDocument> records = null;
+            try {
+                records = retrieveRecords(startPos, NUMBER_OF_RECORDS_PER_ITERATION, recordsInTotal);
+            } catch (OXFException | ExceptionReport | XmlException | RuntimeException e) {
+                int endPos = startPos + NUMBER_OF_RECORDS_PER_ITERATION;
+                log.error("Error while adding {} to {} to triple store, skipping one, trying again...", startPos, endPos, e);
+                // not a nice hack, skipping one entry
+                startPos++;
+                report.retrievalIssues.put("Request for " + startPos + " - " + endPos + " failed.", e);
+                continue;
             }
+
+            if (addToTripleStore)
+                addRecordsToTripleStore(records, graph);
+            if (saveToFile)
+                addRecordsToModel(records, fileModel);
 
             startPos = startPos + NUMBER_OF_RECORDS_PER_ITERATION;
         }
 
+        if (saveToFile && fileModel != null && tempDir != null) {
+            log.debug("Saved files (in {}) for model of size {}", tempDir, fileModel.size());
+            fileModel.close();
+        }
+
         long timeDuration = System.currentTimeMillis() - timeStart;
-        log.info("DONE with CSW to LOD.. duration = {}", timeDuration);
+        log.info("DONE with CSW to LOD.. duration = {} | {}", timeDuration, new Date(timeDuration));
+        log.info("Results: {}", report);
+        if (!report.issues.isEmpty())
+            log.error(report.extendedToString());
     }
 
     private void addRecordsToTripleStore(Map<String, GetRecordByIdResponseDocument> records,
             GraphBase graph) {
-        Model tripleStoreModel = ModelFactory.createModelForGraph(graph);
+        Model tripleStoreModel = configureModel(ModelFactory.createModelForGraph(graph));
         log.info("Processing {} record descriptions into model {}", records.size(), tripleStoreModel);
 
         addRecordsToModel(records, tripleStoreModel);
@@ -153,29 +238,49 @@ public class CSWLoDEnabler {
         tripleStoreModel.close();
     }
 
+    private Model configureModel(Model model) {
+        model.setNsPrefix("rdf", RDF.getURI());
+        model.setNsPrefix("foaf", FOAF.getURI());
+        model.setNsPrefix("dc", DC_11.getURI());
+        model.setNsPrefix("dcterms", DCTerms.getURI());
+        model.setNsPrefix("vcard", VCARD.getURI());
+        model.setNsPrefix("prov", PROV.getURI());
+        return model;
+    }
+
     private void addRecordsToModel(Map<String, GetRecordByIdResponseDocument> records,
             Model model) {
         IsoToRdfMapper mapper = new IsoToRdfMapper();
         int addedCounter = 0;
+
+        Model result = model;
         for (Entry<String, GetRecordByIdResponseDocument> entry : records.entrySet()) {
-            log.debug("Addingd {} to the model", entry.getKey());
+            log.debug("Adding {} to the model", entry.getKey());
 
             try {
-                model = mapper.addGetRecordByIdResponseToModel(model, entry.getValue());
-                addedCounter++;
+                result = mapper.addGetRecordByIdResponseToModel(model, entry.getValue());
+                if (result != null) {
+                    addedCounter++;
+                    this.report.added++;
+                    this.report.addedIds.add(entry.getKey());
+                } else {
+                    this.report.issues.put(entry.getKey(), "Error while adding to model: " + entry.getValue().xmlText());
+                    result = model;
+                }
             } catch (OXFException | XmlException | IOException e) {
                 log.error("Error processing record {}", entry.getKey(), e);
+                this.report.issues.put(entry.getKey(), e);
             }
         }
 
-        log.info("ADDED {} of {} records to model: {}", addedCounter, records.size(), model);
+        log.info("Added {} of {} records to model, which now has size {}", addedCounter, records.size(), model.size());
     }
 
     private Map<String, GetRecordByIdResponseDocument> retrieveRecords(int startPos,
-            int maxRecords) throws OXFException, ExceptionReport, XmlException {
-        log.info("Retrieve {} records (max) starting from {}", maxRecords, startPos);
+            int maxRecords,
+            long recordsInTotal) throws OXFException, ExceptionReport, XmlException {
+        log.info("Retrieve {} records, starting from {}, of {}", maxRecords, startPos, recordsInTotal);
 
-        
         String result = csw.executeGetRecords(maxRecords, startPos);
 
         GetRecordsResponseDocument responseDoc = GetRecordsResponseDocument.Factory.parse(result);
@@ -202,7 +307,7 @@ public class CSWLoDEnabler {
         Map<String, GetRecordByIdResponseDocument> recordDescriptions = Maps.newHashMap();
         int i = 0;
         for (String id : recordIdList) {
-            log.debug("Processing record number {}/{}: {}", i, maxRecords, id);
+            log.debug("Retrieving details of record {}/{}  (over all {}/{}): {}", i, maxRecords, startPos + i, recordsInTotal, id);
 
             try {
                 String recordDescription = csw.executeGetRecordsById(id);
@@ -210,7 +315,8 @@ public class CSWLoDEnabler {
 
                 recordDescriptions.put(id, xb_getRecordByIdResponse);
             } catch (OXFException e) {
-                log.error("Error processing record {}", i, e);
+                log.error("Error retrieving and parsing record {} with id {}", i, id, e);
+                report.retrievalIssues.put(id, e);
             }
 
             i++;

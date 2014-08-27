@@ -100,24 +100,20 @@ public class IsoToRdfMapper {
     /**
      * the method that does the actual work
      * 
-     * @throws XmlException
-     * @throws OXFException
-     * @throws IOException
+     * @return the model if everything went fine, otherwise null
      */
     public Model addGetRecordByIdResponseToModel(Model model,
             GetRecordByIdResponseDocument xb_getRecordByIdResponse) throws XmlException, OXFException, IOException {
-        model.setNsPrefix("rdf", RDF.getURI());
-        model.setNsPrefix("foaf", FOAF.getURI());
-        model.setNsPrefix("dc", DC_11.getURI());
-        model.setNsPrefix("dcterms", DCTerms.getURI());
-        model.setNsPrefix("vcard", VCARD.getURI());
-        model.setNsPrefix("prov", PROV.getURI());
-
         //
         // start reading GetRecordById response:
         //
         Node xb_MDMetadataNode = xb_getRecordByIdResponse.getGetRecordByIdResponse().getDomNode().getChildNodes().item(0);
 
+        if(xb_MDMetadataNode == null) {
+            log.warn("Could not get first child node from response: {}", xb_getRecordByIdResponse.xmlText());
+            return null;
+        }
+        
         MDMetadataType xb_metadata = MDMetadataDocument.Factory.parse(xb_MDMetadataNode).getMDMetadata();
         String recordId = xb_metadata.getFileIdentifier().getCharacterString();
 
@@ -173,6 +169,11 @@ public class IsoToRdfMapper {
         MDIdentificationPropertyType[] idInfoArray = xb_metadata.getIdentificationInfoArray();
         for (int i = 0; i < idInfoArray.length; i++) {
             AbstractMDIdentificationType identification = idInfoArray[i].getAbstractMDIdentification();
+            
+            if(identification == null) {
+                log.warn("No identification provided for {}, metadata is: {}", recordId, xb_metadata.xmlText());
+                return null;
+            }
 
             if (identification.getCitation() != null) {
                 parseCitation(recordResource, identification.getCitation().getCICitation());
@@ -375,7 +376,6 @@ public class IsoToRdfMapper {
                     recordResource.addProperty(DCTerms.provenance, processStepResource);
                 }
             }
-
         }
 
         return model;

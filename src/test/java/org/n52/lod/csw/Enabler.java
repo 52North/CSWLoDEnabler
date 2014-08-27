@@ -10,7 +10,7 @@ public class Enabler {
     public void saveToFile() throws IOException {
         CSWLoDEnabler enabler = new CSWLoDEnabler(false, true);
         
-        enabler.runOverAll();
+        enabler.runStartingFrom(2299);
     }
 
 }
