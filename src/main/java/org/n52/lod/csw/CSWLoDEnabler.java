@@ -28,12 +28,9 @@
  */
 package org.n52.lod.csw;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import net.opengis.cat.csw.x202.AbstractRecordType;
 import net.opengis.cat.csw.x202.BriefRecordType;
@@ -45,11 +42,11 @@ import org.apache.xmlbeans.XmlException;
 import org.apache.xmlbeans.XmlOptions;
 import org.n52.lod.Configuration;
 import org.n52.lod.Report;
-import org.n52.lod.csw.mapping.IsoToRdfMapper;
+import org.n52.lod.csw.mapping.GluesMapper;
+import org.n52.lod.csw.mapping.XmlToRdfMapper;
 import org.n52.lod.triplestore.FileTripleSink;
 import org.n52.lod.triplestore.TripleSink;
 import org.n52.lod.triplestore.VirtuosoServer;
-import org.n52.lod.vocab.PROV;
 import org.n52.oxf.OXFException;
 import org.n52.oxf.ows.ExceptionReport;
 import org.n52.oxf.util.web.HttpClientException;
@@ -59,15 +56,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.io.Files;
-import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.ModelFactory;
-import com.hp.hpl.jena.rdf.model.ModelMaker;
-import com.hp.hpl.jena.sparql.vocabulary.FOAF;
-import com.hp.hpl.jena.vocabulary.DCTerms;
-import com.hp.hpl.jena.vocabulary.DC_11;
-import com.hp.hpl.jena.vocabulary.RDF;
-import com.hp.hpl.jena.vocabulary.VCARD;
 
 /**
  * This is the main class. It allows to start the application and to execute the
@@ -100,13 +88,13 @@ public class CSWLoDEnabler {
 
     protected Report report = new Report();
 
-    public CSWLoDEnabler(boolean addToTripleStore, boolean saveToFile) {
-        this.addToServer = addToTripleStore;
+    public CSWLoDEnabler(boolean addToServer, boolean saveToFile) {
+        this.addToServer = addToServer;
         this.saveToFile = saveToFile;
         this.config = Configuration.INSTANCE;
         log.info("NEW {}", this);
     }
-    
+
     public CSWLoDEnabler(Configuration config) {
         this(config.isAddToServer(), config.isSaveToFile());
         this.config = config;
@@ -145,10 +133,12 @@ public class CSWLoDEnabler {
 
         long timeStart = System.currentTimeMillis();
 
+        XmlToRdfMapper mapper = new GluesMapper(config);
+
         TripleSink serverSink = null;
         if (addToServer) {
             try {
-                serverSink = new VirtuosoServer(config);
+                serverSink = new VirtuosoServer(config, mapper);
             } catch (RuntimeException e) {
                 log.error("Could not connect to graph", e);
             }
@@ -156,7 +146,7 @@ public class CSWLoDEnabler {
 
         TripleSink fileSink = null;
         if (saveToFile) {
-            fileSink = new FileTripleSink();
+            fileSink = new FileTripleSink(mapper);
         }
 
         long recordsInTotal = FALLBACK_RECORDS_TOTAL;
@@ -197,10 +187,13 @@ public class CSWLoDEnabler {
             }
 
         long timeDuration = System.currentTimeMillis() - timeStart;
-        log.info("DONE with CSW to LOD.. duration = {} | {} minutes ", timeDuration, timeDuration / 1000 / 60);
-        log.info("Results: {}", report);
         if (!report.issues.isEmpty())
             log.error(report.extendedToString());
+
+        if (saveToFile)
+            log.info("Saved files: {}", fileSink);
+        log.info("DONE with CSW to LOD.. duration = {} | {} minutes ", timeDuration, timeDuration / 1000 / 60);
+        log.info("Results: {}", report);
     }
 
     private Map<String, GetRecordByIdResponseDocument> retrieveRecords(int startPos,

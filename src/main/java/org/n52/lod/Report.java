@@ -92,10 +92,14 @@ public class Report {
             builder.append(Arrays.toString(addedIds.toArray()));
             builder.append(", ");
         }
-        builder.append("\n\n\n\n\n********************** Issues **********************\n");
-        builder.append(Joiner.on("\n\n").withKeyValueSeparator(" : ").join(issues));
-        builder.append("\n\n\n\n\n***************** Retrieval Issues *****************\n");
-        builder.append(Joiner.on("\n\n").withKeyValueSeparator(" : ").join(retrievalIssues));
+        if (!issues.isEmpty()) {
+            builder.append("\n\n\n\n\n********************** Issues **********************\n");
+            builder.append(Joiner.on("\n\n").withKeyValueSeparator(" : ").join(issues));
+        }
+        if (!retrievalIssues.isEmpty()) {
+            builder.append("\n\n\n\n\n***************** Retrieval Issues *****************\n");
+            builder.append(Joiner.on("\n\n").withKeyValueSeparator(" : ").join(retrievalIssues));
+        }
         builder.append("\n\n");
         builder.append(toString());
         return builder.toString();

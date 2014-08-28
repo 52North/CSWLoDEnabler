@@ -33,19 +33,22 @@ import net.opengis.cat.csw.x202.GetRecordByIdResponseDocument;
 import org.apache.xmlbeans.XmlOptions;
 import org.junit.Before;
 import org.junit.Test;
+import org.n52.lod.Configuration;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
 import com.hp.hpl.jena.graph.Graph;
 import com.hp.hpl.jena.rdf.model.Model;
+import com.hp.hpl.jena.rdf.model.ModelFactory;
 
 public class Mapper {
 
-    private IsoToRdfMapper mapper;
+    private CSWtoRDFMapper mapper;
 
     @Before
     public void createMapper() {
-        this.mapper = new IsoToRdfMapper();
+        Configuration c = new Configuration();
+        this.mapper = new GluesMapper(c);
     }
 
     @Test
@@ -53,7 +56,8 @@ public class Mapper {
         String getRecordResp = Resources.toString(Resources.getResource("GetRecordByIdResponse_0.xml"), Charsets.UTF_8);
         GetRecordByIdResponseDocument xb_getRecordByIdResponse = GetRecordByIdResponseDocument.Factory.parse(getRecordResp, new XmlOptions());
 
-        Model model = this.mapper.createModelFromGetRecordByIdResponse(xb_getRecordByIdResponse);
+        Model model = ModelFactory.createDefaultModel();
+        model = this.mapper.addGetRecordByIdResponseToModel(model, xb_getRecordByIdResponse);
 
         Graph graph = model.getGraph();
         System.out.println(model);

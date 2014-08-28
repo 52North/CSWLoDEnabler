@@ -37,6 +37,7 @@ import java.util.Map;
 import net.opengis.cat.csw.x202.GetRecordByIdResponseDocument;
 
 import org.n52.lod.Report;
+import org.n52.lod.csw.mapping.XmlToRdfMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,17 +63,18 @@ public class FileTripleSink extends AbstractTripleSink {
 
     private Path turtle;
 
-    public FileTripleSink() {
+    public FileTripleSink(XmlToRdfMapper mapper) {
+        super(mapper);
         ModelMaker fileModelMaker = ModelFactory.createMemModelMaker(); // createFileModelMaker(tempDir.getAbsolutePath());
         this.model = configureModel(fileModelMaker.createDefaultModel());
         try {
-            File f = File.createTempFile("csw2lod_model_", ".xml");
+            File f = File.createTempFile("csw2lod_model_", ".rdf");
             this.rdf = Paths.get(f.toURI());
         } catch (IOException e) {
             log.error("Could not create temp file.", e);
             return;
         }
-        this.turtle = rdf.resolveSibling(rdf.getFileName().toString().replace("xml", "ttl"));
+        this.turtle = rdf.resolveSibling(rdf.getFileName().toString().replace("rdf", "ttl"));
     }
 
     @Override
@@ -97,7 +99,7 @@ public class FileTripleSink extends AbstractTripleSink {
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append("FileTripleSink [");
-        if (model != null) {
+        if (model != null && !model.isClosed()) {
             builder.append("model size=");
             builder.append(model.size());
             builder.append(", ");

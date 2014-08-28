@@ -37,18 +37,27 @@ public class Enabler {
 
     @Test
     public void saveToFile() throws IOException {
-        CSWLoDEnabler enabler = new CSWLoDEnabler(true, true);
+        Configuration config = new Configuration("/lod-file.properties");
+        CSWLoDEnabler enabler = new CSWLoDEnabler(config);
 
-        enabler.runStartingFrom(3200);
+        enabler.runStartingFrom(3100);
         // enabler.runOverAll();
     }
-    
+
     @Test
-    public void doFeed() throws IOException {
+    public void doLocalFeed() throws IOException {
+        Configuration config = new Configuration("/lod-metadata.demo-localhost.properties");
+        CSWLoDEnabler enabler = new CSWLoDEnabler(config);
+
+        enabler.runStartingFrom(3100);
+    }
+
+    @Test
+    public void doRemoteFeed() throws IOException {
         Configuration config = new Configuration("/lod-metadata.demo.properties");
         CSWLoDEnabler enabler = new CSWLoDEnabler(config);
-        
-        enabler.runStartingFrom(3200);
+
+        enabler.runStartingFrom(3100);
     }
 
 }

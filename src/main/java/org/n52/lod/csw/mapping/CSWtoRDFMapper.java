@@ -69,7 +69,6 @@ import org.slf4j.LoggerFactory;
 import org.w3c.dom.Node;
 
 import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.Property;
 import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.sparql.vocabulary.FOAF;
@@ -83,45 +82,59 @@ import com.hp.hpl.jena.vocabulary.VCARD;
  * 
  * @author <a href="mailto:broering@52north.org">Arne Broering</a>, Daniel Nüst
  */
-public class IsoToRdfMapper {
+public class CSWtoRDFMapper implements XmlToRdfMapper {
 
-    // TODO move dynamic constants to a config file (URI_BASE, project name, ..)
-    public static final String URI_BASE = "http://glues.52north.org/resource/";
+    private String uriBase_;
 
-    public static final String URI_BASE_PERSONS = URI_BASE + "person/";
+    private String uriBase_person;
 
-    public static final String URI_BASE_ORGANIZATIONS = URI_BASE + "organization/";
+    private String uriBase_organisation;
 
-    public static final String URI_BASE_PROJECTS = URI_BASE + "project/";
+    private String uriBase_project;
 
-    public static final String URI_BASE_RECORDS = URI_BASE + "record/";
+    private String uriBase_record;
 
-    public static final String URI_BASE_TYPES = URI_BASE + "types/";
+    private String uriBase_types;
 
-    public static final String URI_BASE_PROCESS = URI_BASE + "process/";
+    private String uriBase_process;
 
-    public static final String URI_GLUES_PROJECT = URI_BASE_PROJECTS + "GLUES"; // identifies
-                                                                                // the
-                                                                                // GLUES
-                                                                                // project
+    private Object projectName_long;
 
-    public static final String GLUES_PROJECT_NAME_LONG = "Global Assessment of Land Use Dynamics, Greenhouse Gas Emissions and Ecosystem Services";
+    private Object projectName_short;
 
-    public static final String GLUES_PROJECT_NAME_SHORT = "GLUES";
+    private String project_url;
 
-    public static final String GLUES_PROJECT_URL = "http://modul-a.nachhaltiges-landmanagement.de/en/scientific-coordination-glues/";
+    private String project_uri;
 
-    private static Logger log = LoggerFactory.getLogger(IsoToRdfMapper.class);
+    private static Logger log = LoggerFactory.getLogger(CSWtoRDFMapper.class);
 
-    public IsoToRdfMapper() {
+    public CSWtoRDFMapper(String uriBase, String projectUrl, String projectName, String projectNameShort) {
+        this.uriBase_ = uriBase;
+
+        uriBase_person = uriBase_ + "person/";
+        uriBase_organisation = uriBase_ + "organization/";
+        uriBase_project = uriBase_ + "project/";
+        uriBase_record = uriBase_ + "record/";
+        uriBase_types = uriBase_ + "types/";
+        uriBase_process = uriBase_ + "process/";
+        projectName_long = projectName;
+        projectName_short = projectNameShort;
+        project_url = projectUrl;
+        project_uri = uriBase_project + projectName_short;
+
         log.debug("NEW {}", this);
     }
 
-    public Model createModelFromGetRecordByIdResponse(GetRecordByIdResponseDocument getRecordByIdResponse) throws XmlException, OXFException {
-        // create an empty Model
-        Model model = ModelFactory.createDefaultModel();
+    @Override
+    public Model map(Model m,
+            XmlObject xml) throws OXFException, XmlException {
+        if (xml instanceof GetRecordByIdResponseDocument) {
+            GetRecordByIdResponseDocument doc = (GetRecordByIdResponseDocument) xml;
+            return addGetRecordByIdResponseToModel(m, doc);
+        }
+        log.warn("XmlObject not supported by this mapper: {}", xml.xmlText().substring(0, Math.min(xml.xmlText().length(), 200)));
 
-        return addGetRecordByIdResponseToModel(model, getRecordByIdResponse);
+        return m;
     }
 
     /**
@@ -129,23 +142,23 @@ public class IsoToRdfMapper {
      * 
      * @return the model if everything went fine, otherwise null
      */
-    public Model addGetRecordByIdResponseToModel(Model model,
+    protected Model addGetRecordByIdResponseToModel(Model model,
             GetRecordByIdResponseDocument xb_getRecordByIdResponse) throws XmlException, OXFException {
         //
         // start reading GetRecordById response:
         //
         Node xb_MDMetadataNode = xb_getRecordByIdResponse.getGetRecordByIdResponse().getDomNode().getChildNodes().item(0);
 
-        if(xb_MDMetadataNode == null) {
+        if (xb_MDMetadataNode == null) {
             log.warn("Could not get first child node from response: {}", xb_getRecordByIdResponse.xmlText());
             return null;
         }
-        
+
         MDMetadataType xb_metadata = MDMetadataDocument.Factory.parse(xb_MDMetadataNode).getMDMetadata();
         String recordId = xb_metadata.getFileIdentifier().getCharacterString();
 
         // create the record resource
-        Resource recordResource = model.createResource(URI_BASE_RECORDS + recordId);
+        Resource recordResource = model.createResource(uriBase_record + recordId);
         log.debug("Adding {} as resource {}", recordId, recordResource);
 
         //
@@ -158,7 +171,7 @@ public class IsoToRdfMapper {
         MDScopeCodePropertyType[] xb_hierarchyLevelArray = xb_metadata.getHierarchyLevelArray();
         for (int i = 0; i < xb_hierarchyLevelArray.length; i++) {
             String hierarchyLevelCode = xb_hierarchyLevelArray[i].getMDScopeCode().getCodeListValue();
-            recordResource.addProperty(DC_11.type, URI_BASE_TYPES + hierarchyLevelCode);
+            recordResource.addProperty(DC_11.type, uriBase_types + hierarchyLevelCode);
         }
 
         // CharacterStringPropertyType[] xb_hierarchyLevelNameArray =
@@ -196,8 +209,8 @@ public class IsoToRdfMapper {
         MDIdentificationPropertyType[] idInfoArray = xb_metadata.getIdentificationInfoArray();
         for (int i = 0; i < idInfoArray.length; i++) {
             AbstractMDIdentificationType identification = idInfoArray[i].getAbstractMDIdentification();
-            
-            if(identification == null) {
+
+            if (identification == null) {
                 log.warn("No identification provided for {}, metadata is: {}", recordId, xb_metadata.xmlText());
                 return null;
             }
@@ -295,7 +308,7 @@ public class IsoToRdfMapper {
                     LILineageType lineage = dataQuality.getLineage().getLILineage();
 
                     // create provenance resource 'processStepResource'
-                    Resource processStepResource = model.createResource(URI_BASE_PROCESS + recordId);
+                    Resource processStepResource = model.createResource(uriBase_process + recordId);
                     processStepResource.addProperty(RDF.type, DCTerms.ProvenanceStatement);
                     processStepResource.addProperty(RDF.type, PROV.Activity);
 
@@ -491,27 +504,27 @@ public class IsoToRdfMapper {
      * @return the created Resource for the responsibleParty
      * @throws OXFException
      */
-    private static Resource parseResponsibleParty(Model model,
+    private Resource parseResponsibleParty(Model model,
             Resource resource,
             CIResponsiblePartyType responsibleParty) throws OXFException {
         if (responsibleParty.getIndividualName() != null) {
             // create resource for individual person contact:
             String name = responsibleParty.getIndividualName().getCharacterString();
-            Resource personResource = model.createResource(URI_BASE_PERSONS + name.replace(" ", "-"));
+            Resource personResource = model.createResource(uriBase_person + name.replace(" ", "-"));
             personResource.addLiteral(FOAF.name, name);
             personResource.addLiteral(VCARD.FN, name);
             personResource.addProperty(RDF.type, FOAF.Person);
             personResource.addProperty(RDF.type, FOAF.Agent);
             personResource.addProperty(RDF.type, DCTerms.Agent);
 
-            // associate with GLUES project:
-            Resource gluesProject = model.createResource(URI_GLUES_PROJECT);
+            // associate with a project:
+            Resource gluesProject = model.createResource(project_uri);
             gluesProject.addProperty(RDF.type, FOAF.Project);
-            gluesProject.addLiteral(FOAF.name, GLUES_PROJECT_NAME_LONG);
-            gluesProject.addLiteral(FOAF.name, GLUES_PROJECT_NAME_SHORT);
-            gluesProject.addProperty(FOAF.homepage, GLUES_PROJECT_URL);
+            gluesProject.addLiteral(FOAF.name, projectName_long);
+            gluesProject.addLiteral(FOAF.name, projectName_short);
+            gluesProject.addProperty(FOAF.homepage, project_url);
             gluesProject.addProperty(FOAF.member, personResource);
-            personResource.addProperty(FOAF.currentProject, URI_GLUES_PROJECT);
+            personResource.addProperty(FOAF.currentProject, project_uri);
 
             // read out position name:
             addLiteral(personResource, responsibleParty.getPositionName(), VCARD.ROLE);
@@ -519,7 +532,7 @@ public class IsoToRdfMapper {
             // create resource for organization:
             if (responsibleParty.getOrganisationName() != null) {
                 String orgName = responsibleParty.getOrganisationName().getCharacterString();
-                Resource orgResource = model.createResource(URI_BASE_ORGANIZATIONS + orgName.replace(" ", "-"));
+                Resource orgResource = model.createResource(uriBase_organisation + orgName.replace(" ", "-"));
                 orgResource.addLiteral(FOAF.name, orgName);
                 orgResource.addProperty(RDF.type, FOAF.Organization);
 

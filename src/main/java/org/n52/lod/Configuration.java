@@ -58,6 +58,14 @@ public class Configuration {
     
     private boolean saveToFile;
 
+    private String projectUrl;
+
+    private String projectName;
+
+    private String projectShortname;
+
+    private String uriBase;
+
     public static final Configuration INSTANCE = new Configuration();
 
     private static final String DEFAULT_CONFIG_FILE = "/lod.properties";
@@ -86,6 +94,11 @@ public class Configuration {
         testRecordId = props.getProperty("TEST_RECORD_ID");
         saveToFile = Boolean.valueOf(props.getProperty("SAVE_TO_FILE") );
         addToServer = Boolean.valueOf(props.getProperty("ADD_TO_SERVER") );
+        
+        projectUrl = props.getProperty("PROJECT_URL");
+        projectName = props.getProperty("PROJECT_NAME");
+        projectShortname = props.getProperty("PROJECT_SHORTNAME");
+        uriBase = props.getProperty("URI_BASE");
     }
 
     public String getNsGMD() {
@@ -126,6 +139,22 @@ public class Configuration {
 
     public boolean isSaveToFile() {
         return saveToFile;
+    }
+
+    public String getProjectUrl() {
+        return projectUrl;
+    }
+
+    public String getProjectName() {
+        return projectName;
+    }
+
+    public String getProjectShortname() {
+        return projectShortname;
+    }
+
+    public String getUriBase() {
+        return uriBase;
     }
 
 }

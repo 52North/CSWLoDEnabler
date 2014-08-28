@@ -1,7 +1,7 @@
 NS_GMD http://www.isotc211.org/2005/gmd
 NS_CSW http://www.opengis.net/cat/csw/2.0.2
 
-URI_GRAPH http://glues.52north.org/
+URI_GRAPH http://test-graphname/
 
 URL_CSW http://catalog.glues.geo.tu-dresden.de:8080/soapServices/CSWStartup
 
@@ -14,3 +14,8 @@ VIRTUOSO_PASS *****
 
 SAVE_TO_FILE false
 ADD_TO_SERVER false
+
+URI_BASE http://test/
+PROJECT_URL http://test-project-url/
+PROJECT_NAME A test project
+PROJECT_SHORTNAME TestProject

@@ -31,9 +31,10 @@ package org.n52.lod.csw;
 import net.opengis.cat.csw.x202.GetRecordByIdResponseDocument;
 
 import org.apache.xmlbeans.XmlOptions;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.n52.lod.Configuration;
-import org.n52.lod.csw.mapping.IsoToRdfMapper;
+import org.n52.lod.csw.mapping.GluesMapper;
 import org.n52.lod.triplestore.VirtuosoServer;
 
 import virtuoso.jena.driver.VirtuosoQueryExecution;
@@ -47,15 +48,23 @@ import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.RDFNode;
 
 public class VirtuosoInteractorTestManual {
+    
+    private static Configuration config;
+    private static GluesMapper mapper;
+
+    @BeforeClass
+    public static void prepare() {
+        config = new Configuration();
+        mapper = new GluesMapper(config);
+    }
 
     @Test
     public void testLoadVirtuoso() throws Exception {
-        try (VirtuosoServer server = new VirtuosoServer(Configuration.INSTANCE);) {
-            String recordDescription = new CatalogInteractor().executeGetRecordsById(Configuration.INSTANCE.getTestRecordId());
+        try (VirtuosoServer server = new VirtuosoServer(config, mapper);) {
+            String recordDescription = new CatalogInteractor().executeGetRecordsById(config.getTestRecordId());
             GetRecordByIdResponseDocument xb_getRecordByIdResponse = GetRecordByIdResponseDocument.Factory.parse(recordDescription, new XmlOptions());
 
-            IsoToRdfMapper mapper = new IsoToRdfMapper();
-            Model model = mapper.addGetRecordByIdResponseToModel(server.getModel(), xb_getRecordByIdResponse);
+            Model model = mapper.map(server.getModel(), xb_getRecordByIdResponse);
             System.out.println(model);
         }
     }
@@ -63,7 +72,7 @@ public class VirtuosoInteractorTestManual {
     @Test
     public void testQueryVirtuoso() throws Exception {
         /* STEP 1 */
-        try (VirtuosoServer server = new VirtuosoServer(Configuration.INSTANCE);) {
+        try (VirtuosoServer server = new VirtuosoServer(config, mapper);) {
 
             /* STEP 2: Select all data in virtuoso */
             Query sparql = QueryFactory.create("SELECT * WHERE { ?s ?p ?o } limit 100");

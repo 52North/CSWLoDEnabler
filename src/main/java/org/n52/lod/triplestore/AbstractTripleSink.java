@@ -35,7 +35,7 @@ import net.opengis.cat.csw.x202.GetRecordByIdResponseDocument;
 
 import org.apache.xmlbeans.XmlException;
 import org.n52.lod.Report;
-import org.n52.lod.csw.mapping.IsoToRdfMapper;
+import org.n52.lod.csw.mapping.XmlToRdfMapper;
 import org.n52.lod.vocab.PROV;
 import org.n52.oxf.OXFException;
 import org.slf4j.Logger;
@@ -56,11 +56,17 @@ import com.hp.hpl.jena.vocabulary.VCARD;
 public abstract class AbstractTripleSink implements TripleSink {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractTripleSink.class);
+    
+    private XmlToRdfMapper mapper;
+    
+    public AbstractTripleSink(XmlToRdfMapper mapper) {
+        this.mapper = mapper;
+    }
 
     protected void addRecordsToModel(Map<String, GetRecordByIdResponseDocument> records,
             Model m,
             Report report) {
-        IsoToRdfMapper mapper = new IsoToRdfMapper();
+        
         int addedCounter = 0;
 
         Model result = m;
@@ -68,7 +74,7 @@ public abstract class AbstractTripleSink implements TripleSink {
             log.debug("Adding {} to the model", entry.getKey());
 
             try {
-                result = mapper.addGetRecordByIdResponseToModel(m, entry.getValue());
+                result = mapper.map(m, entry.getValue());
                 if (result != null) {
                     addedCounter++;
                     report.added++;

@@ -34,6 +34,7 @@ import net.opengis.cat.csw.x202.GetRecordByIdResponseDocument;
 
 import org.n52.lod.Configuration;
 import org.n52.lod.Report;
+import org.n52.lod.csw.mapping.XmlToRdfMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +51,8 @@ public class VirtuosoServer extends AbstractTripleSink implements TripleSink {
 
     private VirtGraph graph;
 
-    public VirtuosoServer(Configuration config) {
+    public VirtuosoServer(Configuration config, XmlToRdfMapper mapper) {
+        super(mapper);
         this.graph = new VirtGraph(config.getUriGraph(), config.getUrlVirtuosoJdbc(), config.getVirtuosoUser(), config.getVirtuosoPass());
 
         this.model = configureModel(ModelFactory.createModelForGraph(this.graph));
