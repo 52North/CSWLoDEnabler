@@ -11,3 +11,6 @@ URL_VIRTUOSO_JDBC jdbc:virtuoso://localhost:1111
 
 VIRTUOSO_USER *****
 VIRTUOSO_PASS *****
+
+SAVE_TO_FILE false
+ADD_TO_SERVER false

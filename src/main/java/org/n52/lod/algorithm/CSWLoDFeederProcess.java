@@ -46,12 +46,12 @@ public class CSWLoDFeederProcess extends CSWLoDEnabler {
 
     private static final Logger log = LoggerFactory.getLogger(CSWLoDFeederProcess.class);
 
-    public CSWLoDFeederProcess(boolean addToTripleStore, boolean saveToFile) throws IOException {
+    public CSWLoDFeederProcess(boolean addToTripleStore, boolean saveToFile) {
         super(addToTripleStore, saveToFile);
         log.info("NEW {}", this);
     }
 
-    public CSWLoDFeederProcess() throws IOException {
+    public CSWLoDFeederProcess() {
         super(false, false);
     }
 
@@ -72,7 +72,7 @@ public class CSWLoDFeederProcess extends CSWLoDEnabler {
     @Execute
     @Override
     public void runOverAll() throws IOException {
-        this.addToTripleStore = addToTripleStoreInput;
+        this.addToServer = addToTripleStoreInput;
         this.saveToFile = saveToTempfileInput;
 
         log.info("Running {}", this);

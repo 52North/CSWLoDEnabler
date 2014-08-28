@@ -28,7 +28,6 @@
  */
 package org.n52.lod.csw.mapping;
 
-import java.io.IOException;
 import java.util.Calendar;
 
 import net.opengis.cat.csw.x202.GetRecordByIdResponseDocument;
@@ -61,7 +60,7 @@ import org.isotc211.x2005.gmd.MDScopeCodePropertyType;
 import org.isotc211.x2005.gmd.MDTopicCategoryCodePropertyType;
 import org.isotc211.x2005.gmd.RSIdentifierType;
 import org.isotc211.x2005.gmi.LEProcessStepType;
-import org.n52.lod.csw.Constants;
+import org.n52.lod.Configuration;
 import org.n52.lod.vocab.PROV;
 import org.n52.oxf.OXFException;
 import org.n52.oxf.valueDomains.time.TimeFactory;
@@ -118,7 +117,7 @@ public class IsoToRdfMapper {
         log.debug("NEW {}", this);
     }
 
-    public Model createModelFromGetRecordByIdResponse(GetRecordByIdResponseDocument getRecordByIdResponse) throws XmlException, OXFException, IOException {
+    public Model createModelFromGetRecordByIdResponse(GetRecordByIdResponseDocument getRecordByIdResponse) throws XmlException, OXFException {
         // create an empty Model
         Model model = ModelFactory.createDefaultModel();
 
@@ -131,7 +130,7 @@ public class IsoToRdfMapper {
      * @return the model if everything went fine, otherwise null
      */
     public Model addGetRecordByIdResponseToModel(Model model,
-            GetRecordByIdResponseDocument xb_getRecordByIdResponse) throws XmlException, OXFException, IOException {
+            GetRecordByIdResponseDocument xb_getRecordByIdResponse) throws XmlException, OXFException {
         //
         // start reading GetRecordById response:
         //
@@ -241,7 +240,7 @@ public class IsoToRdfMapper {
             // }
 
             // parse topicCategories:
-            XmlObject[] xmlObjectArray = identification.selectChildren(Constants.getInstance().getNsGMD(), "topicCategory");
+            XmlObject[] xmlObjectArray = identification.selectChildren(Configuration.INSTANCE.getNsGMD(), "topicCategory");
             for (int j = 0; j < xmlObjectArray.length; j++) {
                 MDTopicCategoryCodePropertyType topicCategory = (MDTopicCategoryCodePropertyType) xmlObjectArray[j];
                 recordResource.addLiteral(DC_11.subject, topicCategory.getMDTopicCategoryCode().toString());

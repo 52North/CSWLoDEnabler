@@ -48,6 +48,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.entity.ContentType;
 import org.apache.xmlbeans.XmlException;
 import org.apache.xmlbeans.XmlOptions;
+import org.n52.lod.Configuration;
 import org.n52.oxf.OXFException;
 import org.n52.oxf.adapter.OperationResult;
 import org.n52.oxf.adapter.ParameterContainer;
@@ -67,11 +68,11 @@ public class CatalogInteractor {
 
     private CSWAdapter adapter;
 
-    private Constants constants;
+    private Configuration constants;
 
-    public CatalogInteractor() throws IOException {
+    public CatalogInteractor() {
         adapter = new CSWAdapter();
-        constants = Constants.getInstance();
+        constants = Configuration.INSTANCE;
     }
 
     public String executeGetRecords(int maxRecords,

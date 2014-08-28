@@ -26,38 +26,56 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
  * Public License for more details.
  */
-package org.n52.lod.csw;
+package org.n52.lod;
 
 import java.io.IOException;
 import java.util.Properties;
 
-public class Constants {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class Configuration {
+
+    private static final Logger log = LoggerFactory.getLogger(Configuration.class);
 
     private String nsGMD;
+
     private String nsCSW;
+
     private String urlVirtuosoJdbc;
+
     private String virtuosoUser;
+
     private String virtuosoPass;
+
     private String uriGraph;
-    private String urlCSW;    
+
+    private String urlCSW;
+
     private String testRecordId;
-
     
-    private static Constants instance = null;
+    private boolean addToServer;
+    
+    private boolean saveToFile;
 
-    public static Constants getInstance() throws IOException
-    {
-        if (instance == null) {
-            instance = new Constants();
-        }
-        return instance;
+    public static final Configuration INSTANCE = new Configuration();
+
+    private static final String DEFAULT_CONFIG_FILE = "/lod.properties";
+
+    public Configuration() {
+        this(DEFAULT_CONFIG_FILE);
     }
-    
-    private Constants () throws IOException {
+
+    public Configuration(String configFile) {
         Properties props = new Properties();
-        
-        props.load(Constants.class.getResourceAsStream("/lod.properties"));
-        
+
+        try {
+            props.load(Configuration.class.getResourceAsStream(configFile));
+        } catch (IOException e) {
+            log.error("Could not read properties file {}", configFile, e);
+            return;
+        }
+
         nsGMD = props.getProperty("NS_GMD");
         nsCSW = props.getProperty("NS_CSW");
         urlVirtuosoJdbc = props.getProperty("URL_VIRTUOSO_JDBC");
@@ -66,49 +84,48 @@ public class Constants {
         uriGraph = props.getProperty("URI_GRAPH");
         urlCSW = props.getProperty("URL_CSW");
         testRecordId = props.getProperty("TEST_RECORD_ID");
-        
+        saveToFile = Boolean.valueOf(props.getProperty("SAVE_TO_FILE") );
+        addToServer = Boolean.valueOf(props.getProperty("ADD_TO_SERVER") );
     }
 
-    public String getNsGMD()
-    {
+    public String getNsGMD() {
         return nsGMD;
     }
 
-    public String getNsCSW()
-    {
+    public String getNsCSW() {
         return nsCSW;
     }
 
-    public String getUrlVirtuosoJdbc()
-    {
+    public String getUrlVirtuosoJdbc() {
         return urlVirtuosoJdbc;
     }
 
-    public String getVirtuosoUser()
-    {
+    public String getVirtuosoUser() {
         return virtuosoUser;
     }
 
-    public String getVirtuosoPass()
-    {
+    public String getVirtuosoPass() {
         return virtuosoPass;
     }
 
-    public String getUriGraph()
-    {
+    public String getUriGraph() {
         return uriGraph;
     }
 
-    public String getUrlCSW()
-    {
+    public String getUrlCSW() {
         return urlCSW;
     }
 
-    public String getTestRecordId()
-    {
+    public String getTestRecordId() {
         return testRecordId;
     }
-    
-    
-    
+
+    public boolean isAddToServer() {
+        return addToServer;
+    }
+
+    public boolean isSaveToFile() {
+        return saveToFile;
+    }
+
 }

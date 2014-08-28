@@ -36,6 +36,7 @@ import org.apache.xmlbeans.XmlException;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.n52.lod.Configuration;
 import org.n52.oxf.util.web.HttpClientException;
 
 public class CatalogInteractorTestManual {
@@ -50,7 +51,7 @@ public class CatalogInteractorTestManual {
     private CatalogInteractor interactor;
 
     @Before
-    public void createInteractor() throws IOException {
+    public void createInteractor() {
         interactor = new CatalogInteractor();
     }
 
@@ -67,7 +68,7 @@ public class CatalogInteractorTestManual {
 
     @Test
     public void testExecuteGetRecordsById() throws IOException, Exception {
-        String result = interactor.executeGetRecordsById(Constants.getInstance().getTestRecordId());
+        String result = interactor.executeGetRecordsById(Configuration.INSTANCE.getTestRecordId());
 
         Path file = Files.createFile(tempdir.resolve("catalogResult_GetRecordsById.xml"));
         Files.write(file, result.getBytes());

@@ -26,29 +26,29 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
  * Public License for more details.
  */
-package org.n52.lod.csw;
+package org.n52.lod.triplestore;
 
-import java.io.IOException;
+import java.util.Map;
 
-import org.junit.Test;
-import org.n52.lod.Configuration;
+import org.n52.lod.Report;
 
-public class Enabler {
+import net.opengis.cat.csw.x202.GetRecordByIdResponseDocument;
 
-    @Test
-    public void saveToFile() throws IOException {
-        CSWLoDEnabler enabler = new CSWLoDEnabler(true, true);
+/**
+ * 
+ * @author Daniel Nüst
+ *
+ */
+public interface TripleSink extends AutoCloseable {
 
-        enabler.runStartingFrom(3200);
-        // enabler.runOverAll();
-    }
-    
-    @Test
-    public void doFeed() throws IOException {
-        Configuration config = new Configuration("/lod-metadata.demo.properties");
-        CSWLoDEnabler enabler = new CSWLoDEnabler(config);
-        
-        enabler.runStartingFrom(3200);
-    }
+    /**
+     * 
+     * @param records
+     *            to store
+     * @param report
+     *            to fill out
+     */
+    public void addRecords(Map<String, GetRecordByIdResponseDocument> records,
+            Report report);
 
 }
