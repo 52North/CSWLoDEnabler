@@ -22,7 +22,7 @@ To make this work the following non-Maven libs need to be downloaded and install
 
 # Build, Configure, and Run
 
-The project is best run by importing it into an Eclipse workspace. Command-line execution of the main class ``CSWLoDEnabler`` is certainly possible but not tested or documented yet.
+The project is best run by importing it into an Eclipse workspace. Command-line execution of the main class ``CSWLoDEnabler`` is  possible but not documented yet.
 
 ## Create configuration file
 
@@ -101,7 +101,7 @@ This is a [pubby](http://wifo5-03.informatik.uni-mannheim.de/pubby/) configurati
 
 ## Finding issues
 
-To discover issues with data that is retrieved from a catalog, a specific log file ``/logs/csw2lod-issues.log`` exists that contains all warnings and errors that occured during an execution and is emptied each day. More detailed logging is in the other logging files in ``/logs``.
+To discover issues with data that is retrieved from a catalog, a specific log file ``/logs/csw2lod-issues.log`` exists that contains all warnings and errors that occured during each seperate execution. More detailed logging is in the other logging files in ``/logs``.
 
 # Development
 
@@ -118,4 +118,4 @@ For support questions, please contact the 52°North Metadata Community mailing l
 
 # License
 
-..
+This project is licenses under GNU General Public License, version 2.0. For details see the LICENSE file, for information about the used libraries see the NOTICE file.
