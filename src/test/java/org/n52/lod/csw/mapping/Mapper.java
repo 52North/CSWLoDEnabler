@@ -26,9 +26,12 @@ public class Mapper {
         GetRecordByIdResponseDocument xb_getRecordByIdResponse = GetRecordByIdResponseDocument.Factory.parse(getRecordResp, new XmlOptions());
 
         Model model = this.mapper.createModelFromGetRecordByIdResponse(xb_getRecordByIdResponse);
-        
+
         Graph graph = model.getGraph();
         System.out.println(model);
+        System.out.println(graph);
+
+        // TODO add test assertions
     }
 
 }

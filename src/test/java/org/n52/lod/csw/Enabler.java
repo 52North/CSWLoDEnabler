@@ -5,12 +5,13 @@ import java.io.IOException;
 import org.junit.Test;
 
 public class Enabler {
-    
+
     @Test
     public void saveToFile() throws IOException {
-        CSWLoDEnabler enabler = new CSWLoDEnabler(false, true);
-        
-        enabler.runStartingFrom(2299);
+        CSWLoDEnabler enabler = new CSWLoDEnabler(true, true);
+
+        // enabler.runStartingFrom(3250);
+        enabler.runOverAll();
     }
 
 }

@@ -54,16 +54,16 @@ public class VirtuosoInteractorTestManual {
         Query sparql = QueryFactory.create("SELECT * WHERE { ?s ?p ?o } limit 100");
 
         /* STEP 4 */
-        VirtuosoQueryExecution vqe = VirtuosoQueryExecutionFactory.create(sparql, set);
-
-        ResultSet results = vqe.execSelect();
-        while (results.hasNext()) {
-            QuerySolution result = results.nextSolution();
-            RDFNode graph = result.get("graph");
-            RDFNode s = result.get("s");
-            RDFNode p = result.get("p");
-            RDFNode o = result.get("o");
-            System.out.println(graph + " { " + s + " " + p + " " + o + " . }");
+        try (VirtuosoQueryExecution vqe = VirtuosoQueryExecutionFactory.create(sparql, set);) {
+            ResultSet results = vqe.execSelect();
+            while (results.hasNext()) {
+                QuerySolution result = results.nextSolution();
+                RDFNode graph = result.get("graph");
+                RDFNode s = result.get("s");
+                RDFNode p = result.get("p");
+                RDFNode o = result.get("o");
+                System.out.println(graph + " { " + s + " " + p + " " + o + " . }");
+            }
         }
     }
 }
