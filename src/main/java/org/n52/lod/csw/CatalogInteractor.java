@@ -126,7 +126,7 @@ public class CatalogInteractor {
     }
 
     public String executeGetRecordsById(String recordID) throws OXFException, ExceptionReport {
-        LOGGER.info("Calling GetRecordsById for record '" + recordID + "'");
+        LOGGER.debug("Calling GetRecordsById for record '" + recordID + "'");
 
         String elementSetName = "full";
         String outputSchema = constants.getNsGMD();

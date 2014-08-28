@@ -35,7 +35,7 @@
 		</Async>
 	</Appenders>
 	<Loggers>
-		<Logger name="org.n52.lod" level="debug" additivity="false">
+		<Logger name="org.n52.lod" level="info" additivity="false">
 			<AppenderRef ref="Console" />
 			<AppenderRef ref="Async" />
 		</Logger>

@@ -2,8 +2,8 @@ package org.n52.lod.csw;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -62,19 +62,21 @@ public class CSWLoDEnabler {
         xmlOptions.setCharacterEncoding("UTF-8");
     }
 
-    private boolean addToTripleStore = false;
+    protected boolean addToTripleStore = false;
 
-    private boolean saveToFile = false;
+    protected boolean saveToFile = false;
 
     Constants constants = null;
 
     private CatalogInteractor csw;
 
-    private Report report;
+    protected Report report;
 
-    private static class Report {
+    protected static class Report {
 
         public int added = 0;
+
+        public long startIndex = 0;
 
         public long recordNumber = 0;
 
@@ -95,32 +97,39 @@ public class CSWLoDEnabler {
             builder.append(added);
             builder.append(", recordNumber=");
             builder.append(recordNumber);
-            builder.append(", ");
+            builder.append(", startIndex=");
+            builder.append(startIndex);
             if (addedIds != null) {
-                builder.append("\n\t\taddedIds=");
-                builder.append(Arrays.toString(addedIds.toArray()));
-                builder.append(", ");
+                builder.append(", # added=");
+                builder.append(addedIds.size());
             }
             if (issues != null) {
-                builder.append("\n\t\tissue ids=");
-                builder.append(Arrays.toString(issues.keySet().toArray()));
+                builder.append(", # issues=");
+                builder.append(issues.size());
             }
             if (issues != null) {
-                builder.append("\n\t\tretrievalIssueIds=");
-                builder.append(Arrays.toString(retrievalIssues.keySet().toArray()));
+                builder.append(", # retrieval issue=");
+                builder.append(retrievalIssues.size());
             }
             builder.append("]");
             return builder.toString();
         }
 
         public String extendedToString() {
-            StringBuilder sb = new StringBuilder();
-            sb.append(toString());
-            sb.append("\n\n\n********************** Issues **********************\n");
-            sb.append(Joiner.on(" ").withKeyValueSeparator(":").join(issues));
-            sb.append("\n\n\n***************** Retrieval Issues *****************\n");
-            sb.append(Joiner.on("\n").withKeyValueSeparator(":").join(retrievalIssues));
-            return sb.toString();
+            StringBuilder builder = new StringBuilder();
+            builder.append(toString());
+            if (addedIds != null) {
+                builder.append("\n\n\n\n\n********************** Added **********************\n");
+                builder.append(Arrays.toString(addedIds.toArray()));
+                builder.append(", ");
+            }
+            builder.append("\n\n\n\n\n********************** Issues **********************\n");
+            builder.append(Joiner.on("\n\n").withKeyValueSeparator(" : ").join(issues));
+            builder.append("\n\n\n\n\n***************** Retrieval Issues *****************\n");
+            builder.append(Joiner.on("\n\n").withKeyValueSeparator(" : ").join(retrievalIssues));
+            builder.append("\n\n");
+            builder.append(toString());
+            return builder.toString();
         }
     }
 
@@ -144,7 +153,7 @@ public class CSWLoDEnabler {
         }
     }
 
-    private void runOverAll() throws IOException {
+    public void runOverAll() throws IOException {
         runStartingFrom(1);
     }
 
@@ -167,22 +176,20 @@ public class CSWLoDEnabler {
 
         long timeStart = System.currentTimeMillis();
 
-        GraphBase graph = null;
+        Model tripleStoreModel = null;
         if (addToTripleStore) {
             try {
-                graph = new VirtGraph(constants.getUriGraph(), constants.getUrlVirtuosoJdbc(), constants.getVirtuosoUser(), constants.getVirtuosoPass());
+                GraphBase graph = new VirtGraph(constants.getUriGraph(), constants.getUrlVirtuosoJdbc(), constants.getVirtuosoUser(), constants.getVirtuosoPass());
+                tripleStoreModel = configureModel(ModelFactory.createModelForGraph(graph));
             } catch (RuntimeException e) {
                 log.error("Could not connect to graph", e);
             }
         }
 
         Model fileModel = null;
-        File tempDir = null;
         if (saveToFile) {
-            tempDir = Files.createTempDir();
-            ModelMaker fileModelMaker = ModelFactory.createFileModelMaker(tempDir.getAbsolutePath());
+            ModelMaker fileModelMaker = ModelFactory.createMemModelMaker(); // createFileModelMaker(tempDir.getAbsolutePath());
             fileModel = configureModel(fileModelMaker.createDefaultModel());
-            log.info("Saving triples to files in {}", tempDir);
         }
 
         long recordsInTotal = FALLBACK_RECORDS_TOTAL;
@@ -192,50 +199,40 @@ public class CSWLoDEnabler {
         } catch (IllegalStateException | HttpClientException | XmlException e) {
             log.error("Could not retrieve number of records from catalog {}, falling back to {}", csw, FALLBACK_RECORDS_TOTAL, e);
         }
+        report.startIndex = startPos;
         report.recordNumber = recordsInTotal;
 
         while (startPos < recordsInTotal) {
             Map<String, GetRecordByIdResponseDocument> records = null;
-            try {
-                records = retrieveRecords(startPos, NUMBER_OF_RECORDS_PER_ITERATION, recordsInTotal);
-            } catch (OXFException | ExceptionReport | XmlException | RuntimeException e) {
-                int endPos = startPos + NUMBER_OF_RECORDS_PER_ITERATION;
-                log.error("Error while adding {} to {} to triple store, skipping one, trying again...", startPos, endPos, e);
-                // not a nice hack, skipping one entry
-                startPos++;
-                report.retrievalIssues.put("Request for " + startPos + " - " + endPos + " failed.", e);
-                continue;
-            }
+            records = retrieveRecords(startPos, NUMBER_OF_RECORDS_PER_ITERATION, recordsInTotal);
 
-            if (addToTripleStore)
-                addRecordsToTripleStore(records, graph);
-            if (saveToFile)
+            if (addToTripleStore && tripleStoreModel != null)
+                addRecordsToModel(records, tripleStoreModel);
+            if (saveToFile && fileModel != null)
                 addRecordsToModel(records, fileModel);
 
             startPos = startPos + NUMBER_OF_RECORDS_PER_ITERATION;
         }
 
-        if (saveToFile && fileModel != null && tempDir != null) {
-            log.debug("Saved files (in {}) for model of size {}", tempDir, fileModel.size());
+        if (saveToFile && fileModel != null) {
+            File rdf = File.createTempFile("csw2lod_model_", ".xml");
+            long size = fileModel.size();
+            fileModel.write(Files.newOutputStreamSupplier(rdf).getOutput(), "RDF/XML");
+            Path turtle = rdf.toPath().resolveSibling(rdf.toPath().getFileName().toString().replace("xml", "ttl"));
+            fileModel.write(Files.newOutputStreamSupplier(turtle.toFile()).getOutput(), "TURTLE");
             fileModel.close();
+
+            log.debug("Saved model in files {} and {}, model size {}", rdf, turtle, size);
         }
 
+        if (tripleStoreModel != null)
+            tripleStoreModel.close();
+
         long timeDuration = System.currentTimeMillis() - timeStart;
-        log.info("DONE with CSW to LOD.. duration = {} | {}", timeDuration, new Date(timeDuration));
+        log.info("DONE with CSW to LOD.. duration = {} | {} minutes ", timeDuration, timeDuration / 1000 / 60);
         log.info("Results: {}", report);
         if (!report.issues.isEmpty())
             log.error(report.extendedToString());
-    }
-
-    private void addRecordsToTripleStore(Map<String, GetRecordByIdResponseDocument> records,
-            GraphBase graph) {
-        Model tripleStoreModel = configureModel(ModelFactory.createModelForGraph(graph));
-        log.info("Processing {} record descriptions into model {}", records.size(), tripleStoreModel);
-
-        addRecordsToModel(records, tripleStoreModel);
-        log.debug("DONE - model: {} | graph: {}", tripleStoreModel, graph);
-
-        tripleStoreModel.close();
     }
 
     private Model configureModel(Model model) {
@@ -273,38 +270,49 @@ public class CSWLoDEnabler {
             }
         }
 
-        log.info("Added {} of {} records to model, which now has size {}", addedCounter, records.size(), model.size());
+        log.info("Added {} of {} records to model {}, which now has size {}", addedCounter, records.size(), model.getClass(), model.size());
     }
 
     private Map<String, GetRecordByIdResponseDocument> retrieveRecords(int startPos,
             int maxRecords,
-            long recordsInTotal) throws OXFException, ExceptionReport, XmlException {
-        log.info("Retrieve {} records, starting from {}, of {}", maxRecords, startPos, recordsInTotal);
+            long recordsInTotal) {
+        log.info("Retrieve {} records, starting from {} of {}", maxRecords, startPos, recordsInTotal);
+        Map<String, GetRecordByIdResponseDocument> recordDescriptions = Maps.newHashMap();
 
-        String result = csw.executeGetRecords(maxRecords, startPos);
+        SearchResultsType searchResults = null;
+        try {
+            String result = csw.executeGetRecords(maxRecords, startPos);
+            GetRecordsResponseDocument responseDoc = GetRecordsResponseDocument.Factory.parse(result);
+            searchResults = responseDoc.getGetRecordsResponse().getSearchResults();
 
-        GetRecordsResponseDocument responseDoc = GetRecordsResponseDocument.Factory.parse(result);
-        SearchResultsType searchResults = responseDoc.getGetRecordsResponse().getSearchResults();
+        } catch (OXFException | ExceptionReport | XmlException e) {
+            log.error("Could not retrieving and parsing records {} to {}", startPos, startPos + maxRecords, e);
+            report.retrievalIssues.put("Request for " + startPos + " - " + startPos + maxRecords + " failed.", e);
+            return recordDescriptions;
+        }
 
         // collect all record IDs:
         List<String> recordIdList = Lists.newArrayList();
         AbstractRecordType[] abstractRecordArray = searchResults.getAbstractRecordArray();
         for (AbstractRecordType abstractRecordType : abstractRecordArray) {
-            BriefRecordType abstractRecord = BriefRecordType.Factory.parse(abstractRecordType.xmlText());
+            try {
+                BriefRecordType abstractRecord = BriefRecordType.Factory.parse(abstractRecordType.xmlText());
+                if (abstractRecord.getIdentifierArray() != null && abstractRecord.getIdentifierArray().length >= 1) {
+                    SimpleLiteral identifierLiteral = SimpleLiteral.Factory.parse(abstractRecord.getIdentifierArray(0).getDomNode());
+                    String recordId = identifierLiteral.getDomNode().getChildNodes().item(0).getChildNodes().item(0).getNodeValue();
 
-            if (abstractRecord.getIdentifierArray() != null && abstractRecord.getIdentifierArray().length >= 1) {
-
-                SimpleLiteral identifierLiteral = SimpleLiteral.Factory.parse(abstractRecord.getIdentifierArray(0).getDomNode());
-                String recordId = identifierLiteral.getDomNode().getChildNodes().item(0).getChildNodes().item(0).getNodeValue();
-
-                recordIdList.add(recordId);
+                    recordIdList.add(recordId);
+                }
+            } catch (XmlException e) {
+                log.error("Could not parse record {}", abstractRecordType.xmlText(), e);
+                report.retrievalIssues.put("Parsing records response", e);
+                return recordDescriptions;
             }
         }
 
         log.debug("Found {} record ids based on catalog response with {} matched and {} returned", recordIdList.size(), searchResults.getNumberOfRecordsMatched(),
                 searchResults.getNumberOfRecordsReturned());
 
-        Map<String, GetRecordByIdResponseDocument> recordDescriptions = Maps.newHashMap();
         int i = 0;
         for (String id : recordIdList) {
             log.debug("Retrieving details of record {}/{}  (over all {}/{}): {}", i, maxRecords, startPos + i, recordsInTotal, id);
@@ -314,7 +322,7 @@ public class CSWLoDEnabler {
                 GetRecordByIdResponseDocument xb_getRecordByIdResponse = GetRecordByIdResponseDocument.Factory.parse(recordDescription, xmlOptions);
 
                 recordDescriptions.put(id, xb_getRecordByIdResponse);
-            } catch (OXFException e) {
+            } catch (OXFException | RuntimeException | ExceptionReport | XmlException e) {
                 log.error("Error retrieving and parsing record {} with id {}", i, id, e);
                 report.retrievalIssues.put(id, e);
             }
