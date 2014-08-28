@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<csw:GetRecordsResponse xmlns:csw="http://www.opengis.net/cat/csw/2.0.2"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.opengis.net/cat/csw/2.0.2 http://schemas.opengis.net/csw/2.0.2/CSW-discovery.xsd">
+	<csw:RequestId />
+	<csw:SearchStatus />
+	<csw:SearchResults numberOfRecordsMatched="3259"
+		numberOfRecordsReturned="3">
+		<csw:BriefRecord>
+			<dc:identifier xmlns:dc="http://purl.org/dc/elements/1.1/">glues:ilr:metadata:dataset:productiontotallandusedbyagriculture
+			</dc:identifier>
+			<dc:title xmlns:dc="http://purl.org/dc/elements/1.1/">CAPRI total Land used by agriculture
+			</dc:title>
+			<dc:type xmlns:dc="http://purl.org/dc/elements/1.1/">dataset</dc:type>
+			<ows:BoundingBox xmlns:ows="http://www.opengis.net/ows">
+				<ows:LowerCorner>180.0 -90.0</ows:LowerCorner>
+				<ows:UpperCorner>-180.0 90.0</ows:UpperCorner>
+			</ows:BoundingBox>
+		</csw:BriefRecord>
+		<csw:BriefRecord>
+			<dc:identifier xmlns:dc="http://purl.org/dc/elements/1.1/">glues:pik:metadata:dataset:cgcm3.1(t47)sresa1bcloudcover
+			</dc:identifier>
+			<dc:title xmlns:dc="http://purl.org/dc/elements/1.1/">PIK limited WCRP CMIP3 multi-model
+				dataset CGCM3.1 SRESA1B Cloud cover</dc:title>
+			<dc:type xmlns:dc="http://purl.org/dc/elements/1.1/">dataset</dc:type>
+			<ows:BoundingBox xmlns:ows="http://www.opengis.net/ows">
+				<ows:LowerCorner>-180.0 -90.0</ows:LowerCorner>
+				<ows:UpperCorner>180.0 90.0</ows:UpperCorner>
+			</ows:BoundingBox>
+		</csw:BriefRecord>
+		<csw:BriefRecord>
+			<dc:identifier xmlns:dc="http://purl.org/dc/elements/1.1/">glues:pik:metadata:dataset:mri-cgcm2.3.23.5ktemperature
+			</dc:identifier>
+			<dc:title xmlns:dc="http://purl.org/dc/elements/1.1/">PIK temperature-stratified multi-model
+				dataset MRI-CGCM2.3.2 3.5K Temperature</dc:title>
+			<dc:type xmlns:dc="http://purl.org/dc/elements/1.1/">dataset</dc:type>
+			<ows:BoundingBox xmlns:ows="http://www.opengis.net/ows">
+				<ows:LowerCorner>-180.0 -90.0</ows:LowerCorner>
+				<ows:UpperCorner>180.0 90.0</ows:UpperCorner>
+			</ows:BoundingBox>
+		</csw:BriefRecord>
+	</csw:SearchResults>
+</csw:GetRecordsResponse>

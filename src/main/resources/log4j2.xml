@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn" monitorInterval="10">
+	<Appenders>
+		<Console name="Console" target="SYSTEM_OUT">
+			<PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n" />
+		</Console>
+
+		<RollingRandomAccessFile name="cswlod-log"
+			fileName="logs/csw2lod.log" filePattern="logs/csw2lod-%d{yyyy-MM-dd}-%i.log">
+			<PatternLayout>
+				<Pattern>%d %p %c{1.} [%t] %m%n</Pattern>
+			</PatternLayout>
+			<Policies>
+				<TimeBasedTriggeringPolicy />
+				<SizeBasedTriggeringPolicy size="10 MB" />
+			</Policies>
+			<DefaultRolloverStrategy max="20" />
+		</RollingRandomAccessFile>
+
+		<RollingFile name="cswlod-issues" immediateFlush="false"
+			fileName="logs/csw2lod-issues.log" filePattern="logs/csw2lod-issue-%d{yyyy-MM-dd}-%i.log.log">
+			<Policies>
+				<OnStartupTriggeringPolicy />
+				<SizeBasedTriggeringPolicy size="200 MB" />
+				<TimeBasedTriggeringPolicy />
+			</Policies>
+			<ThresholdFilter level="WARN" onMatch="ACCEPT"
+				onMismatch="DENY" />
+			<PatternLayout pattern="%d %p %c{1.} [%t] %m%n" />
+		</RollingFile>
+
+		<Async name="Async">
+			<AppenderRef ref="cswlod-log" />
+			<AppenderRef ref="cswlod-issues" />
+		</Async>
+	</Appenders>
+	<Loggers>
+		<Logger name="org.n52.lod" level="info" additivity="false">
+			<AppenderRef ref="Console" />
+			<AppenderRef ref="Async" />
+		</Logger>
+		<Root level="error">
+			<AppenderRef ref="Console" />
+		</Root>
+	</Loggers>
+</Configuration>

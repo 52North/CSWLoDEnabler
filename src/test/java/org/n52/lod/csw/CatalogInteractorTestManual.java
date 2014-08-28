@@ -1,43 +1,85 @@
+/**
+ * ﻿Copyright (C) 2013-2014 52°North Initiative for Geospatial Open Source
+ * Software GmbH
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 as published
+ * by the Free Software Foundation.
+ *
+ * If the program is linked with libraries which are licensed under one of
+ * the following licenses, the combination of the program with the linked
+ * library is not considered a "derivative work" of the program:
+ *
+ *     - Apache License, version 2.0
+ *     - Apache Software License, version 1.0
+ *     - GNU Lesser General Public License, version 3
+ *     - Mozilla Public License, versions 1.0, 1.1 and 2.0
+ *     - Common Development and Distribution License (CDDL), version 1.0
+ *
+ * Therefore the distribution of the program linked with libraries licensed
+ * under the aforementioned licenses, is permitted by the copyright holders
+ * if the distribution is compliant with both the GNU General Public
+ * License version 2 and the aforementioned licenses.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
+ */
 package org.n52.lod.csw;
 
-import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
-import junit.framework.TestCase;
+import org.apache.xmlbeans.XmlException;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.n52.oxf.util.web.HttpClientException;
 
-import org.n52.lod.csw.CatalogInteractor;
-import org.n52.lod.csw.Constants;
-import org.n52.util.IoUtils;
+public class CatalogInteractorTestManual {
 
-public class CatalogInteractorTestManual extends TestCase {
+    private static Path tempdir;
 
-    public void testExecuteGetRecords()
-    {
-        try {
-            String result = new CatalogInteractor().executeGetRecords(10, 2000);
-            
-            IoUtils.saveFile(new File("c:/temp/catalogResult_GetRecords.xml"), result);
-            
-            System.out.println(result);
-        } catch (Exception e) {
-            e.printStackTrace();
-
-            fail();
-        }
+    @BeforeClass
+    public static void tempdir() throws IOException {
+        tempdir = Files.createTempDirectory("csw2lod_");
     }
 
-    public void testExecuteGetRecordsById()
-    {
-        try {
-            String result = new CatalogInteractor().executeGetRecordsById(Constants.getInstance().getTestRecordId());
-            
-            IoUtils.saveFile(new File("c:/temp/catalogResult_GetRecordsById.xml"), result);
-            
-            System.out.println(result);
-        } catch (Exception e) {
-            e.printStackTrace();
+    private CatalogInteractor interactor;
 
-            fail();
-        }
+    @Before
+    public void createInteractor() throws IOException {
+        interactor = new CatalogInteractor();
+    }
+
+    @Test
+    public void testExecuteGetRecords() throws Exception {
+        String result = interactor.executeGetRecords(10, 2000);
+
+        Path file = Files.createFile(tempdir.resolve("catalogResult_GetRecords.xml"));
+
+        Files.write(file, result.getBytes());
+
+        System.out.println("Saved file to " + file);
+    }
+
+    @Test
+    public void testExecuteGetRecordsById() throws IOException, Exception {
+        String result = interactor.executeGetRecordsById(Constants.getInstance().getTestRecordId());
+
+        Path file = Files.createFile(tempdir.resolve("catalogResult_GetRecordsById.xml"));
+        Files.write(file, result.getBytes());
+
+        System.out.println("Saved file to " + file);
+    }
+
+    @Test
+    public void countRecordsInCSW() throws IllegalStateException, HttpClientException, IOException, XmlException {
+        long numberOfRecords = interactor.getNumberOfRecords();
+
+        System.out.println(numberOfRecords);
     }
 
 }
