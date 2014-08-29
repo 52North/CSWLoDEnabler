@@ -29,8 +29,10 @@
 package org.n52.lod.csw;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -62,6 +64,11 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 
 /**
  * This is the main class. It allows to start the application and to execute the
@@ -73,11 +80,11 @@ public class CSWLoDEnabler {
 
     private static final Logger log = LoggerFactory.getLogger(CSWLoDEnabler.class);
 
-    private static final int NUMBER_OF_RECORDS_PER_ITERATION = 50;
+    private static final int NUMBER_OF_RECORDS_PER_ITERATION = 25;
 
     private static final long FALLBACK_RECORDS_TOTAL = 10000;
 
-    private static XmlOptions xmlOptions;
+    static XmlOptions xmlOptions;
 
     static {
         xmlOptions = new XmlOptions();
@@ -311,7 +318,10 @@ public class CSWLoDEnabler {
                 int i = startPos;
                 while (i < recordCount) {
                     retrievingTimer.start();
-                    Map<String, GetRecordByIdResponseDocument> records = retrieveRecords(i, NUMBER_OF_RECORDS_PER_ITERATION, recordCount);
+                    // Map<String, GetRecordByIdResponseDocument> records =
+                    // retrieveRecords(i, NUMBER_OF_RECORDS_PER_ITERATION,
+                    // recordCount);
+                    Map<String, GetRecordByIdResponseDocument> records = retrieveRecordsThreaded(i, NUMBER_OF_RECORDS_PER_ITERATION, recordCount);
                     queue.add(records);
                     retrievingTimer.stop();
 
@@ -385,46 +395,25 @@ public class CSWLoDEnabler {
             log.error("during shut down of map executor", e);
         }
     }
-    
+
     protected Map<String, GetRecordByIdResponseDocument> retrieveRecords(int startPos,
             int maxRecords,
             long recordsInTotal) {
         log.info("Retrieve {} records, starting from {} of {}", maxRecords, startPos, recordsInTotal);
+
+        List<String> recordIdList = getRecordIds(startPos, maxRecords);
+
+        Map<String, GetRecordByIdResponseDocument> recordDescriptions = getRecordDescriptions(startPos, maxRecords, recordsInTotal, recordIdList);
+
+        log.info("Done with requests and parsing, have {} GetRecordById documents.", recordDescriptions.size());
+        return recordDescriptions;
+    }
+
+    private Map<String, GetRecordByIdResponseDocument> getRecordDescriptions(int startPos,
+            int maxRecords,
+            long recordsInTotal,
+            List<String> recordIdList) {
         Map<String, GetRecordByIdResponseDocument> recordDescriptions = Maps.newHashMap();
-
-        SearchResultsType searchResults = null;
-        try {
-            String result = csw.executeGetRecords(maxRecords, startPos);
-            GetRecordsResponseDocument responseDoc = GetRecordsResponseDocument.Factory.parse(result);
-            searchResults = responseDoc.getGetRecordsResponse().getSearchResults();
-
-        } catch (OXFException | ExceptionReport | XmlException e) {
-            log.error("Could not retrieving and parsing records {} to {}", startPos, startPos + maxRecords, e);
-            report.retrievalIssues.put("Request for " + startPos + " - " + startPos + maxRecords + " failed.", e);
-            return recordDescriptions;
-        }
-
-        // collect all record IDs:
-        List<String> recordIdList = Lists.newArrayList();
-        AbstractRecordType[] abstractRecordArray = searchResults.getAbstractRecordArray();
-        for (AbstractRecordType abstractRecordType : abstractRecordArray) {
-            try {
-                BriefRecordType abstractRecord = BriefRecordType.Factory.parse(abstractRecordType.xmlText());
-                if (abstractRecord.getIdentifierArray() != null && abstractRecord.getIdentifierArray().length >= 1) {
-                    SimpleLiteral identifierLiteral = SimpleLiteral.Factory.parse(abstractRecord.getIdentifierArray(0).getDomNode());
-                    String recordId = identifierLiteral.getDomNode().getChildNodes().item(0).getChildNodes().item(0).getNodeValue();
-
-                    recordIdList.add(recordId);
-                }
-            } catch (XmlException e) {
-                log.error("Could not parse record {}", abstractRecordType.xmlText(), e);
-                report.retrievalIssues.put("Parsing records response", e);
-                return recordDescriptions;
-            }
-        }
-
-        log.debug("Found {} record ids based on catalog response with {} matched and {} returned", recordIdList.size(), searchResults.getNumberOfRecordsMatched(),
-                searchResults.getNumberOfRecordsReturned());
 
         int i = 0;
         for (String id : recordIdList) {
@@ -441,6 +430,119 @@ public class CSWLoDEnabler {
             }
 
             i++;
+        }
+        return recordDescriptions;
+    }
+
+    private List<String> getRecordIds(int startPos,
+            int maxRecords) {
+        ArrayList<String> recordIdList = Lists.newArrayList();
+
+        SearchResultsType searchResults = null;
+        try {
+            String result = csw.executeGetRecords(maxRecords, startPos);
+            GetRecordsResponseDocument responseDoc = GetRecordsResponseDocument.Factory.parse(result);
+            searchResults = responseDoc.getGetRecordsResponse().getSearchResults();
+
+        } catch (OXFException | ExceptionReport | XmlException e) {
+            log.error("Could not retrieving and parsing records {} to {}", startPos, startPos + maxRecords, e);
+            report.retrievalIssues.put("Request for " + startPos + " - " + startPos + maxRecords + " failed.", e);
+            return Lists.newArrayList();
+        }
+
+        AbstractRecordType[] abstractRecordArray = searchResults.getAbstractRecordArray();
+        for (AbstractRecordType abstractRecordType : abstractRecordArray) {
+            try {
+                BriefRecordType abstractRecord = BriefRecordType.Factory.parse(abstractRecordType.xmlText());
+                if (abstractRecord.getIdentifierArray() != null && abstractRecord.getIdentifierArray().length >= 1) {
+                    SimpleLiteral identifierLiteral = SimpleLiteral.Factory.parse(abstractRecord.getIdentifierArray(0).getDomNode());
+                    String recordId = identifierLiteral.getDomNode().getChildNodes().item(0).getChildNodes().item(0).getNodeValue();
+
+                    recordIdList.add(recordId);
+                }
+            } catch (XmlException e) {
+                log.error("Could not parse record {}", abstractRecordType.xmlText(), e);
+                report.retrievalIssues.put("Parsing records response", e);
+                return Lists.newArrayList();
+            }
+        }
+        log.debug("Found {} record ids based on catalog response with {} matched and {} returned", recordIdList.size(), searchResults.getNumberOfRecordsMatched(),
+                searchResults.getNumberOfRecordsReturned());
+        return recordIdList;
+    }
+
+    private class CallableRecordDescription implements Callable<GetRecordByIdResponseDocument> {
+
+        private final Logger logger = LoggerFactory.getLogger(CallableRecordDescription.class);
+
+        private String id;
+
+        private CatalogInteractor csw;
+
+        public CallableRecordDescription(String id, CatalogInteractor csw) {
+            this.id = id;
+            this.csw = csw;
+        }
+
+        @Override
+        public GetRecordByIdResponseDocument call() throws Exception {
+            logger.debug("Retrieving {} using {}", this.id, this.csw);
+            String recordDescription = this.csw.executeGetRecordsById(this.id);
+            GetRecordByIdResponseDocument xb_getRecordByIdResponse = GetRecordByIdResponseDocument.Factory.parse(recordDescription, xmlOptions);
+            return xb_getRecordByIdResponse;
+        }
+
+    }
+
+    protected Map<String, GetRecordByIdResponseDocument> retrieveRecordsThreaded(int startPos,
+            int maxRecords,
+            long recordsInTotal) {
+        log.info("Retrieve {} records, starting from {} of {}", maxRecords, startPos, recordsInTotal);
+
+        // one thread for getting ids
+        List<String> recordIdList = getRecordIds(startPos, maxRecords);
+
+        // many threads getting records descriptions
+        final Map<String, GetRecordByIdResponseDocument> recordDescriptions = Maps.newConcurrentMap();
+
+        ListeningExecutorService executorService = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(maxRecords));
+
+        for (String id : recordIdList) {
+            final String recordId = id;
+            log.debug("Adding {} to the model", recordId);
+
+            CallableRecordDescription c = new CallableRecordDescription(id, csw);
+            ListenableFuture<GetRecordByIdResponseDocument> responseFuture = executorService.submit(c);
+
+            Futures.addCallback(responseFuture, new FutureCallback<GetRecordByIdResponseDocument>() {
+
+                private final Logger logger = LoggerFactory.getLogger("Record Downloader");
+
+                @Override
+                public void onFailure(Throwable t) {
+                    logger.error("Error retrieving and parsing record {}", t);
+                    report.retrievalIssues.put(recordId, t);
+                }
+
+                @Override
+                public void onSuccess(GetRecordByIdResponseDocument result) {
+                    logger.trace("SUCCESS with {}", result);
+                    recordDescriptions.put(recordId, result);
+
+                    report.added++;
+                    report.addedIds.add(recordId);
+                }
+
+            });
+        }
+
+        executorService.shutdown();
+        while (!executorService.isTerminated()) {
+            try {
+                executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            } catch (InterruptedException e) {
+                log.error("Could not await termination", e);
+            }
         }
 
         log.info("Done with requests and parsing, have {} GetRecordById documents.", recordDescriptions.size());
