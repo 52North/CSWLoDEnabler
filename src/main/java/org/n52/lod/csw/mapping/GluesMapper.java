@@ -10,7 +10,7 @@ import org.n52.lod.Configuration;
 public class GluesMapper extends CSWtoRDFMapper {
 
     public GluesMapper(Configuration config) {
-        super(config.getUriBase(), config.getProjectUrl(), config.getProjectName(), config.getProjectShortname());
+        super(config);
     }
 
 }

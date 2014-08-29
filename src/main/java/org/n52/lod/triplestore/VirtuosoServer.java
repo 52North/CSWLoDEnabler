@@ -28,6 +28,7 @@
  */
 package org.n52.lod.triplestore;
 
+import java.util.Arrays;
 import java.util.Map;
 
 import net.opengis.cat.csw.x202.GetRecordByIdResponseDocument;
@@ -43,7 +44,7 @@ import virtuoso.jena.driver.VirtGraph;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 
-public class VirtuosoServer extends AbstractTripleSink implements TripleSink {
+public class VirtuosoServer extends AbstractTripleSink {
 
     private static final Logger log = LoggerFactory.getLogger(VirtuosoServer.class);
 
@@ -62,7 +63,9 @@ public class VirtuosoServer extends AbstractTripleSink implements TripleSink {
     @Override
     public void addRecords(Map<String, GetRecordByIdResponseDocument> records,
             Report report) {
+        log.info("Adding {} records...", records.size());
         addRecordsToModel(records, model, report);
+        log.info("Added records: {}", Arrays.toString(records.keySet().toArray()));
     }
 
     @Override

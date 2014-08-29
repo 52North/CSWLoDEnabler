@@ -84,26 +84,22 @@ public class CSWLoDEnabler {
 
     Configuration config = null;
 
-    private CatalogInteractor csw = new CatalogInteractor();
+    private CatalogInteractor csw;
 
     protected Report report = new Report();
 
-    public CSWLoDEnabler(boolean addToServer, boolean saveToFile) {
-        this.addToServer = addToServer;
-        this.saveToFile = saveToFile;
-        this.config = Configuration.INSTANCE;
-        log.info("NEW {}", this);
-    }
-
     public CSWLoDEnabler(Configuration config) {
-        this(config.isAddToServer(), config.isSaveToFile());
+        addToServer = config.isAddToServer();
+        saveToFile = config.isSaveToFile();
+        
         this.config = config;
+        this.csw = new CatalogInteractor(config);
         log.info("NEW {}", this);
     }
 
     public static void main(String[] args) {
         try {
-            CSWLoDEnabler enabler = new CSWLoDEnabler(true, true);
+            CSWLoDEnabler enabler = new CSWLoDEnabler(new Configuration(Configuration.DEFAULT_CONFIG_FILE));
             enabler.runOverAll();
         } catch (RuntimeException | IOException e) {
             log.error("Error running CSW to LOD", e);
@@ -190,10 +186,10 @@ public class CSWLoDEnabler {
         if (!report.issues.isEmpty())
             log.error(report.extendedToString());
 
-        if (saveToFile)
-            log.info("Saved files: {}", fileSink);
         log.info("DONE with CSW to LOD.. duration = {} | {} minutes ", timeDuration, timeDuration / 1000 / 60);
         log.info("Results: {}", report);
+        log.info("Sinks: server = {}, file = {}", addToServer, saveToFile);
+        log.info("Server: {} | File: {}", serverSink, fileSink);
     }
 
     private Map<String, GetRecordByIdResponseDocument> retrieveRecords(int startPos,
@@ -252,7 +248,8 @@ public class CSWLoDEnabler {
 
             i++;
         }
-        log.debug("Done with requests and parsing, have {} GetRecordById documents.", recordDescriptions.size());
+        
+        log.info("Done with requests and parsing, have {} GetRecordById documents.", recordDescriptions.size());
         return recordDescriptions;
     }
 

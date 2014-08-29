@@ -68,11 +68,11 @@ public class CatalogInteractor {
 
     private CSWAdapter adapter;
 
-    private Configuration constants;
+    private Configuration config;
 
-    public CatalogInteractor() {
+    public CatalogInteractor(Configuration config) {
         adapter = new CSWAdapter();
-        constants = Configuration.INSTANCE;
+        this.config = config;
     }
 
     public String executeGetRecords(int maxRecords,
@@ -87,7 +87,7 @@ public class CatalogInteractor {
         paramCon.addParameterShell(CSWRequestBuilder.GET_RECORDS_QUERY_TYPE_NAMES_PARAMETER, "csw:Record");
         paramCon.addParameterShell(CSWRequestBuilder.GET_RECORDS_ELEMENT_SET_NAME_FORMAT, ElementSetNameType.BRIEF.toString());
 
-        String cswUrl = constants.getUrlCSW();
+        String cswUrl = config.getUrlCSW();
         Operation getRecOp = new Operation(CSWAdapter.GET_RECORDS, cswUrl + "?", cswUrl);
 
         String result = execute(paramCon, getRecOp);
@@ -146,7 +146,7 @@ public class CatalogInteractor {
         String request = xb_getRecordsDocument.xmlText(new XmlOptions().setSavePrettyPrint());
 
         SimpleHttpClient httpClient = new SimpleHttpClient(20000);
-        String cswUrl = constants.getUrlCSW();
+        String cswUrl = config.getUrlCSW();
         HttpResponse response = httpClient.executePost(cswUrl, request, ContentType.TEXT_XML);
         GetRecordsResponseDocument doc = GetRecordsResponseDocument.Factory.parse(response.getEntity().getContent());
         
@@ -158,7 +158,7 @@ public class CatalogInteractor {
         LOGGER.debug("Calling GetRecordsById for record '" + recordID + "'");
 
         String elementSetName = "full";
-        String outputSchema = constants.getNsGMD();
+        String outputSchema = config.getNsGMD();
 
         ParameterContainer paramCon = new ParameterContainer();
         paramCon.addParameterShell(CSWRequestBuilder.GET_RECORD_BY_ID_REQUEST, CSWAdapter.GET_RECORD_BY_ID);
@@ -168,7 +168,7 @@ public class CatalogInteractor {
         paramCon.addParameterShell(CSWRequestBuilder.GET_RECORD_BY_ID_ELEMENT_SET_NAME, elementSetName);
         paramCon.addParameterShell(CSWRequestBuilder.GET_RECORD_BY_ID_OUTPUT_SCHEMA, outputSchema);
 
-        String cswUrl = constants.getUrlCSW();
+        String cswUrl = config.getUrlCSW();
         Operation op = new Operation(CSWAdapter.GET_RECORD_BY_ID, cswUrl + "?", cswUrl);
 
         String result = execute(paramCon, op);

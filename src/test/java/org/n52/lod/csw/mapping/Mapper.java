@@ -47,7 +47,7 @@ public class Mapper {
 
     @Before
     public void createMapper() {
-        Configuration c = new Configuration();
+        Configuration c = new Configuration(Configuration.DEFAULT_CONFIG_FILE);
         this.mapper = new GluesMapper(c);
     }
 

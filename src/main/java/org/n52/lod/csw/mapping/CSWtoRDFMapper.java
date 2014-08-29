@@ -106,9 +106,13 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
 
     private String project_uri;
 
+    private Configuration config;
+
     private static Logger log = LoggerFactory.getLogger(CSWtoRDFMapper.class);
 
-    public CSWtoRDFMapper(String uriBase, String projectUrl, String projectName, String projectNameShort) {
+    public CSWtoRDFMapper(Configuration config, String uriBase, String projectUrl, String projectName, String projectNameShort) {
+        this.config = config;
+        
         this.uriBase_ = uriBase;
 
         uriBase_person = uriBase_ + "person/";
@@ -123,6 +127,10 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
         project_uri = uriBase_project + projectName_short;
 
         log.debug("NEW {}", this);
+    }
+
+    public CSWtoRDFMapper(Configuration config) {
+        this(config, config.getUriBase(), config.getProjectUrl(), config.getProjectName(), config.getProjectShortname());
     }
 
     @Override
@@ -253,7 +261,7 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
             // }
 
             // parse topicCategories:
-            XmlObject[] xmlObjectArray = identification.selectChildren(Configuration.INSTANCE.getNsGMD(), "topicCategory");
+            XmlObject[] xmlObjectArray = identification.selectChildren(config.getNsGMD(), "topicCategory");
             for (int j = 0; j < xmlObjectArray.length; j++) {
                 MDTopicCategoryCodePropertyType topicCategory = (MDTopicCategoryCodePropertyType) xmlObjectArray[j];
                 recordResource.addLiteral(DC_11.subject, topicCategory.getMDTopicCategoryCode().toString());
@@ -580,7 +588,7 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
                     personResource.addProperty(RDF.type, PROV.Person);
                     resource.addProperty(PROV.wasAssociatedWith, personResource);
                 } else {
-                    log.warn("Unsupported contact role {}: \n{}", contactRoleCode, responsibleParty.xmlText());
+                    log.warn("Unsupported contact role '{}':  ind-name '{}' | orgname '{}'", contactRoleCode, responsibleParty.getIndividualName(), responsibleParty.getOrganisationName());
                     throw new OXFException("Contact role code '" + contactRoleCode + "' not supported.");
                 }
             }
@@ -588,7 +596,7 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
             return personResource;
         }
 
-        log.warn("Unsupported contact for resource {}: \n{}", resource, responsibleParty.xmlText());
+        log.warn("Unsupported contact (non-individual contacts not yet supported) for resource {}: \n{}", resource, responsibleParty.xmlText());
         throw new OXFException("Non-individual contacts not yet supported.");
     }
 

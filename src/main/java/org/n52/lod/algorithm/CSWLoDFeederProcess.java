@@ -30,6 +30,7 @@ package org.n52.lod.algorithm;
 
 import java.io.IOException;
 
+import org.n52.lod.Configuration;
 import org.n52.lod.csw.CSWLoDEnabler;
 import org.n52.wps.algorithm.annotation.Algorithm;
 import org.n52.wps.algorithm.annotation.Execute;
@@ -46,13 +47,10 @@ public class CSWLoDFeederProcess extends CSWLoDEnabler {
 
     private static final Logger log = LoggerFactory.getLogger(CSWLoDFeederProcess.class);
 
-    public CSWLoDFeederProcess(boolean addToTripleStore, boolean saveToFile) {
-        super(addToTripleStore, saveToFile);
-        log.info("NEW {}", this);
-    }
+    private static final String PROCESS_CONFIG_FILE = "/lod.properties";
 
     public CSWLoDFeederProcess() {
-        super(false, false);
+        super(new Configuration(PROCESS_CONFIG_FILE));
     }
 
     @LiteralDataInput(

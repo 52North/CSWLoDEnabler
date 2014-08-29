@@ -52,7 +52,7 @@ public class CatalogInteractorTestManual {
 
     @Before
     public void createInteractor() {
-        interactor = new CatalogInteractor();
+        interactor = new CatalogInteractor(new Configuration(Configuration.DEFAULT_CONFIG_FILE));
     }
 
     @Test
@@ -68,7 +68,8 @@ public class CatalogInteractorTestManual {
 
     @Test
     public void testExecuteGetRecordsById() throws IOException, Exception {
-        String result = interactor.executeGetRecordsById(Configuration.INSTANCE.getTestRecordId());
+        Configuration config = new Configuration(Configuration.DEFAULT_CONFIG_FILE);
+        String result = interactor.executeGetRecordsById(config.getTestRecordId());
 
         Path file = Files.createFile(tempdir.resolve("catalogResult_GetRecordsById.xml"));
         Files.write(file, result.getBytes());

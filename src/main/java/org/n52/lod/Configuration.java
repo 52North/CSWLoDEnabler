@@ -29,6 +29,7 @@
 package org.n52.lod;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
 
 import org.slf4j.Logger;
@@ -66,20 +67,18 @@ public class Configuration {
 
     private String uriBase;
 
-    public static final Configuration INSTANCE = new Configuration();
-
-    private static final String DEFAULT_CONFIG_FILE = "/lod.properties";
-
-    public Configuration() {
-        this(DEFAULT_CONFIG_FILE);
-    }
+    public static final String DEFAULT_CONFIG_FILE = "/lod.properties";
 
     public Configuration(String configFile) {
         Properties props = new Properties();
+        
+        if(configFile == null)
+            configFile = DEFAULT_CONFIG_FILE;
 
-        try {
-            props.load(Configuration.class.getResourceAsStream(configFile));
-        } catch (IOException e) {
+        log.info("Loading properties from {}", configFile);
+        try(InputStream in = Configuration.class.getResourceAsStream(configFile);) {
+                props.load(in);
+        } catch (IOException| NullPointerException e) {
             log.error("Could not read properties file {}", configFile, e);
             return;
         }
@@ -99,6 +98,8 @@ public class Configuration {
         projectName = props.getProperty("PROJECT_NAME");
         projectShortname = props.getProperty("PROJECT_SHORTNAME");
         uriBase = props.getProperty("URI_BASE");
+        
+        log.info("NEW {}", this);
     }
 
     public String getNsGMD() {

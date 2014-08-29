@@ -54,14 +54,14 @@ public class VirtuosoInteractorTestManual {
 
     @BeforeClass
     public static void prepare() {
-        config = new Configuration();
+        config = new Configuration(Configuration.DEFAULT_CONFIG_FILE);
         mapper = new GluesMapper(config);
     }
 
     @Test
     public void testLoadVirtuoso() throws Exception {
         try (VirtuosoServer server = new VirtuosoServer(config, mapper);) {
-            String recordDescription = new CatalogInteractor().executeGetRecordsById(config.getTestRecordId());
+            String recordDescription = new CatalogInteractor(config).executeGetRecordsById(config.getTestRecordId());
             GetRecordByIdResponseDocument xb_getRecordByIdResponse = GetRecordByIdResponseDocument.Factory.parse(recordDescription, new XmlOptions());
 
             Model model = mapper.map(server.getModel(), xb_getRecordByIdResponse);

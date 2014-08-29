@@ -84,7 +84,7 @@ public abstract class AbstractTripleSink implements TripleSink {
                     result = m;
                 }
             } catch (OXFException | XmlException e) {
-                log.error("Error processing record {}", entry.getKey(), e);
+                log.error("Error processing record {}", entry.getKey(), e.getMessage());
                 report.issues.put(entry.getKey(), e);
             }
         }

@@ -32,6 +32,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Map;
 
 import net.opengis.cat.csw.x202.GetRecordByIdResponseDocument;
@@ -92,7 +93,9 @@ public class FileTripleSink extends AbstractTripleSink {
     @Override
     public void addRecords(Map<String, GetRecordByIdResponseDocument> records,
             Report report) {
+        log.info("Adding {} records...", records.size());
         addRecordsToModel(records, this.model, report);
+        log.info("Added records: {}", Arrays.toString(records.keySet().toArray()));
     }
 
     @Override
