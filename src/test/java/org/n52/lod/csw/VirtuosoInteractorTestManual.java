@@ -64,7 +64,7 @@ public class VirtuosoInteractorTestManual {
             String recordDescription = new CatalogInteractor(config).executeGetRecordsById(config.getTestRecordId());
             GetRecordByIdResponseDocument xb_getRecordByIdResponse = GetRecordByIdResponseDocument.Factory.parse(recordDescription, new XmlOptions());
 
-            Model model = mapper.map(server.getModel(), xb_getRecordByIdResponse);
+            Model model = mapper.map(xb_getRecordByIdResponse);
             System.out.println(model);
         }
     }

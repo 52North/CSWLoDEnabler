@@ -52,7 +52,7 @@ import com.hp.hpl.jena.rdf.model.ModelMaker;
  * @author Daniel Nüst
  *
  */
-public class FileTripleSink extends AbstractTripleSink {
+public class FileTripleSink extends AbstractWorkerTripleSink { //AbstractTripleSink {
 
     private static final Logger log = LoggerFactory.getLogger(FileTripleSink.class);
 
@@ -94,8 +94,8 @@ public class FileTripleSink extends AbstractTripleSink {
     public void addRecords(Map<String, GetRecordByIdResponseDocument> records,
             Report report) {
         log.info("Adding {} records...", records.size());
-        addRecordsToModel(records, this.model, report);
-        log.info("Added records: {}", Arrays.toString(records.keySet().toArray()));
+        int added = addRecordsToModel(records, this.model, report);
+        log.info("Added {} / {} records: {}", added, records.size(), Arrays.toString(records.keySet().toArray()));
     }
 
     @Override

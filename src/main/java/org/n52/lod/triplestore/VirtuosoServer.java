@@ -44,7 +44,7 @@ import virtuoso.jena.driver.VirtGraph;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 
-public class VirtuosoServer extends AbstractTripleSink {
+public class VirtuosoServer extends AbstractWorkerTripleSink {
 
     private static final Logger log = LoggerFactory.getLogger(VirtuosoServer.class);
 
@@ -64,8 +64,8 @@ public class VirtuosoServer extends AbstractTripleSink {
     public void addRecords(Map<String, GetRecordByIdResponseDocument> records,
             Report report) {
         log.info("Adding {} records...", records.size());
-        addRecordsToModel(records, model, report);
-        log.info("Added records: {}", Arrays.toString(records.keySet().toArray()));
+        int added = addRecordsToModel(records, model, report);
+        log.info("Added {} / {} records: {}", added, records.size(), Arrays.toString(records.keySet().toArray()));
     }
 
     @Override

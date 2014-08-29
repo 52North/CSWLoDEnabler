@@ -12,7 +12,9 @@ import com.hp.hpl.jena.rdf.model.Model;
  *
  */
 public interface XmlToRdfMapper {
+
+    public abstract Model map(XmlObject xml) throws OXFException, XmlException;
     
-    public abstract Model map(Model m, XmlObject xml) throws OXFException, XmlException;
+    public abstract XmlToRdfMapper replicate();
 
 }

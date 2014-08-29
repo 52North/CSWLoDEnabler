@@ -49,7 +49,8 @@ public class Enabler {
         Configuration config = new Configuration("/lod-metadata.demo-localhost.properties");
         CSWLoDEnabler enabler = new CSWLoDEnabler(config);
 
-        enabler.runStartingFrom(3100);
+        // enabler.runStartingFrom(3000);
+        enabler.asyncRunStartingFrom(3000);
     }
 
     @Test
@@ -57,7 +58,7 @@ public class Enabler {
         Configuration config = new Configuration("/lod-metadata.demo.properties");
         CSWLoDEnabler enabler = new CSWLoDEnabler(config);
 
-        enabler.runStartingFrom(201);
+        enabler.runStartingFrom(2801);
     }
 
 }

@@ -31,6 +31,10 @@ package org.n52.lod.csw;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import net.opengis.cat.csw.x202.AbstractRecordType;
 import net.opengis.cat.csw.x202.BriefRecordType;
@@ -54,8 +58,10 @@ import org.purl.dc.elements.x11.SimpleLiteral;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Queues;
 
 /**
  * This is the main class. It allows to start the application and to execute the
@@ -88,10 +94,14 @@ public class CSWLoDEnabler {
 
     protected Report report = new Report();
 
+    protected final Map<String, GetRecordByIdResponseDocument> POISON_PILL = Maps.newHashMap();
+
     public CSWLoDEnabler(Configuration config) {
+        POISON_PILL.put("poison", null);
+
         addToServer = config.isAddToServer();
         saveToFile = config.isSaveToFile();
-        
+
         this.config = config;
         this.csw = new CatalogInteractor(config);
         log.info("NEW {}", this);
@@ -127,8 +137,14 @@ public class CSWLoDEnabler {
             return;
         }
 
-        long timeStart = System.currentTimeMillis();
+        final Stopwatch overallTimer = new Stopwatch();
+        overallTimer.start();
 
+        final Stopwatch retrievingTimer = new Stopwatch();
+        final Stopwatch mappingTimer = new Stopwatch();
+        final Stopwatch otherTimer = new Stopwatch();
+
+        otherTimer.start();
         XmlToRdfMapper mapper = new GluesMapper(config);
 
         TripleSink serverSink = null;
@@ -154,20 +170,27 @@ public class CSWLoDEnabler {
         }
         report.startIndex = startPos;
         report.recordNumber = recordsInTotal;
+        otherTimer.stop();
 
         // main loop
         while (startPos < recordsInTotal) {
-            Map<String, GetRecordByIdResponseDocument> records = null;
-            records = retrieveRecords(startPos, NUMBER_OF_RECORDS_PER_ITERATION, recordsInTotal);
+            retrievingTimer.start();
+            Map<String, GetRecordByIdResponseDocument> records = retrieveRecords(startPos, NUMBER_OF_RECORDS_PER_ITERATION, recordsInTotal);
+            retrievingTimer.stop();
 
+            mappingTimer.start();
             if (addToServer && serverSink != null)
                 serverSink.addRecords(records, report);
             if (saveToFile && fileSink != null)
                 fileSink.addRecords(records, report);
+            mappingTimer.stop();
 
             startPos = startPos + NUMBER_OF_RECORDS_PER_ITERATION;
+
+            log.debug("Finished intermediate run at {}", overallTimer.toString());
         } // end of main loop
 
+        otherTimer.start();
         if (fileSink != null)
             try {
                 fileSink.close();
@@ -182,17 +205,188 @@ public class CSWLoDEnabler {
                 log.error("Could not close server sink {}", serverSink, e);
             }
 
-        long timeDuration = System.currentTimeMillis() - timeStart;
         if (!report.issues.isEmpty())
             log.error(report.extendedToString());
 
-        log.info("DONE with CSW to LOD.. duration = {} | {} minutes ", timeDuration, timeDuration / 1000 / 60);
+        overallTimer.stop();
+        otherTimer.stop();
+
+        log.info("DONE with CSW to LOD.. duration = {} (retrieving: {}, mapping = {}, other = {})", overallTimer, retrievingTimer, mappingTimer, otherTimer);
         log.info("Results: {}", report);
         log.info("Sinks: server = {}, file = {}", addToServer, saveToFile);
         log.info("Server: {} | File: {}", serverSink, fileSink);
     }
 
-    private Map<String, GetRecordByIdResponseDocument> retrieveRecords(int startPos,
+    public void asyncRunStartingFrom(final int startPos) throws IOException {
+        log.info("STARTING CSW to LOD..");
+
+        if (!(addToServer || saveToFile)) {
+            log.warn("Neither triple store nor file output are activated.");
+            return;
+        }
+
+        final Stopwatch overallTimer = new Stopwatch();
+        overallTimer.start();
+
+        final Stopwatch retrievingTimer = new Stopwatch();
+        final Stopwatch mappingTimer = new Stopwatch();
+        final Stopwatch otherTimer = new Stopwatch();
+
+        otherTimer.start();
+        XmlToRdfMapper mapper = new GluesMapper(config);
+
+        TripleSink serverSink = null;
+        if (addToServer) {
+            try {
+                serverSink = new VirtuosoServer(config, mapper);
+            } catch (RuntimeException e) {
+                log.error("Could not connect to graph", e);
+            }
+        }
+
+        TripleSink fileSink = null;
+        if (saveToFile) {
+            fileSink = new FileTripleSink(mapper);
+        }
+
+        long recordsInTotal;
+        try {
+            recordsInTotal = csw.getNumberOfRecords();
+            log.debug("Retrieved number of records from server: {}", recordsInTotal);
+        } catch (IllegalStateException | HttpClientException | XmlException e) {
+            log.error("Could not retrieve number of records from catalog {}, falling back to {}", csw, FALLBACK_RECORDS_TOTAL, e);
+            recordsInTotal = FALLBACK_RECORDS_TOTAL;
+        }
+        report.startIndex = startPos;
+        report.recordNumber = recordsInTotal;
+        otherTimer.stop();
+
+        async(startPos, recordsInTotal, overallTimer, retrievingTimer, mappingTimer, serverSink, fileSink);
+
+        otherTimer.start();
+        if (fileSink != null)
+            try {
+                fileSink.close();
+            } catch (Exception e) {
+                log.error("Could not close file sink {}", fileSink, e);
+            }
+
+        if (serverSink != null)
+            try {
+                serverSink.close();
+            } catch (Exception e) {
+                log.error("Could not close server sink {}", serverSink, e);
+            }
+
+        if (!report.issues.isEmpty())
+            log.error(report.extendedToString());
+
+        overallTimer.stop();
+        otherTimer.stop();
+
+        log.info("DONE with CSW to LOD.. duration = {} (retrieving: {}, mapping = {}, other = {})", overallTimer, retrievingTimer, mappingTimer, otherTimer);
+        log.info("Results: {}", report);
+        log.info("Sinks: server = {}, file = {}", addToServer, saveToFile);
+        log.info("Server: {} | File: {}", serverSink, fileSink);
+    }
+
+    private void async(final int startPos,
+            final long recordCount,
+            final Stopwatch overallTimer,
+            final Stopwatch retrievingTimer,
+            final Stopwatch mappingTimer,
+            final TripleSink serverSink,
+            final TripleSink fileSink) {
+        // processing queue
+        final ConcurrentLinkedQueue<Map<String, GetRecordByIdResponseDocument>> queue = Queues.newConcurrentLinkedQueue();
+
+        // main loop download - producer
+        ExecutorService downloadExecutor = Executors.newSingleThreadExecutor();
+        downloadExecutor.submit(new Runnable() {
+
+            private final Logger logger = LoggerFactory.getLogger("Download Runnable");
+
+            @Override
+            public void run() {
+                int i = startPos;
+                while (i < recordCount) {
+                    retrievingTimer.start();
+                    Map<String, GetRecordByIdResponseDocument> records = retrieveRecords(i, NUMBER_OF_RECORDS_PER_ITERATION, recordCount);
+                    queue.add(records);
+                    retrievingTimer.stop();
+
+                    i = i + NUMBER_OF_RECORDS_PER_ITERATION;
+                    logger.debug("Finished intermediate download run at {}", overallTimer.toString());
+                } // end of main loop
+
+                logger.trace("Done - adding the poison pill!");
+                queue.add(POISON_PILL);
+            }
+        });
+
+        // consumer
+        ExecutorService mapExecutor = Executors.newSingleThreadExecutor();
+        mapExecutor.submit(new Runnable() {
+
+            private final Logger logger = LoggerFactory.getLogger("Map Runnable");
+
+            private boolean isRunning = true;
+
+            @Override
+            public void run() {
+                while (isRunning) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        logger.error("Error sleeping in mapping runnable", e);
+                    }
+
+                    try {
+                        Map<String, GetRecordByIdResponseDocument> records = queue.poll();
+
+                        if (records == null)
+                            continue;
+
+                        if (records == POISON_PILL) {
+                            queue.add(POISON_PILL); // notify other threads to
+                                                    // stop
+                            isRunning = false;
+                            logger.trace("Got the poison pill!");
+                            return;
+                        }
+
+                        // process queueElement
+                        mappingTimer.start();
+                        if (addToServer && serverSink != null)
+                            serverSink.addRecords(records, report);
+                        if (saveToFile && fileSink != null)
+                            fileSink.addRecords(records, report);
+                        mappingTimer.stop();
+
+                        logger.debug("Finished intermediate run at {}", overallTimer.toString());
+
+                    } catch (RuntimeException e) {
+                        logger.error("Error in mapping runnable", e);
+                    }
+                } // end of main loop
+            }
+        });
+
+        downloadExecutor.shutdown();
+        try {
+            downloadExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            log.error("during shut down of download executor", e);
+        }
+        mapExecutor.shutdown();
+        try {
+            mapExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            log.error("during shut down of map executor", e);
+        }
+    }
+    
+    protected Map<String, GetRecordByIdResponseDocument> retrieveRecords(int startPos,
             int maxRecords,
             long recordsInTotal) {
         log.info("Retrieve {} records, starting from {} of {}", maxRecords, startPos, recordsInTotal);
@@ -248,7 +442,7 @@ public class CSWLoDEnabler {
 
             i++;
         }
-        
+
         log.info("Done with requests and parsing, have {} GetRecordById documents.", recordDescriptions.size());
         return recordDescriptions;
     }

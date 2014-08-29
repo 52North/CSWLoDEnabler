@@ -57,25 +57,26 @@ public abstract class AbstractTripleSink implements TripleSink {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractTripleSink.class);
     
-    private XmlToRdfMapper mapper;
+    protected XmlToRdfMapper mapper;
     
     public AbstractTripleSink(XmlToRdfMapper mapper) {
         this.mapper = mapper;
     }
 
-    protected void addRecordsToModel(Map<String, GetRecordByIdResponseDocument> records,
+    protected int addRecordsToModel(Map<String, GetRecordByIdResponseDocument> records,
             Model m,
             Report report) {
         
         int addedCounter = 0;
 
-        Model result = m;
         for (Entry<String, GetRecordByIdResponseDocument> entry : records.entrySet()) {
             log.debug("Adding {} to the model", entry.getKey());
 
             try {
-                result = mapper.map(m, entry.getValue());
+                Model result = mapper.map(entry.getValue());
                 if (result != null) {
+                    m.add(result);
+                    
                     addedCounter++;
                     report.added++;
                     report.addedIds.add(entry.getKey());
@@ -89,7 +90,8 @@ public abstract class AbstractTripleSink implements TripleSink {
             }
         }
 
-        log.info("Added {} of {} records to model {}, which now has size {}", addedCounter, records.size(), m.getClass(), m.size());
+        log.debug("Added {} of {} records to model {}, which now has size {}", addedCounter, records.size(), m.getClass(), m.size());
+        return addedCounter;
     }
 
     protected static Model configureModel(Model model) {
