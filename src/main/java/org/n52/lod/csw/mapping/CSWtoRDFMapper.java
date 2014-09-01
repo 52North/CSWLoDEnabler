@@ -28,7 +28,6 @@
  */
 package org.n52.lod.csw.mapping;
 
-import java.io.IOException;
 import java.util.Calendar;
 
 import net.opengis.cat.csw.x202.GetRecordByIdResponseDocument;
@@ -61,7 +60,7 @@ import org.isotc211.x2005.gmd.MDScopeCodePropertyType;
 import org.isotc211.x2005.gmd.MDTopicCategoryCodePropertyType;
 import org.isotc211.x2005.gmd.RSIdentifierType;
 import org.isotc211.x2005.gmi.LEProcessStepType;
-import org.n52.lod.csw.Constants;
+import org.n52.lod.Configuration;
 import org.n52.lod.vocab.PROV;
 import org.n52.oxf.OXFException;
 import org.n52.oxf.valueDomains.time.TimeFactory;
@@ -84,45 +83,69 @@ import com.hp.hpl.jena.vocabulary.VCARD;
  * 
  * @author <a href="mailto:broering@52north.org">Arne Broering</a>, Daniel Nüst
  */
-public class IsoToRdfMapper {
+public class CSWtoRDFMapper implements XmlToRdfMapper {
 
-    // TODO move dynamic constants to a config file (URI_BASE, project name, ..)
-    public static final String URI_BASE = "http://glues.52north.org/resource/";
+    private String uriBase_;
 
-    public static final String URI_BASE_PERSONS = URI_BASE + "person/";
+    private String uriBase_person;
 
-    public static final String URI_BASE_ORGANIZATIONS = URI_BASE + "organization/";
+    private String uriBase_organisation;
 
-    public static final String URI_BASE_PROJECTS = URI_BASE + "project/";
+    private String uriBase_project;
 
-    public static final String URI_BASE_RECORDS = URI_BASE + "record/";
+    private String uriBase_record;
 
-    public static final String URI_BASE_TYPES = URI_BASE + "types/";
+    private String uriBase_types;
 
-    public static final String URI_BASE_PROCESS = URI_BASE + "process/";
+    private String uriBase_process;
 
-    public static final String URI_GLUES_PROJECT = URI_BASE_PROJECTS + "GLUES"; // identifies
-                                                                                // the
-                                                                                // GLUES
-                                                                                // project
+    private Object projectName_long;
 
-    public static final String GLUES_PROJECT_NAME_LONG = "Global Assessment of Land Use Dynamics, Greenhouse Gas Emissions and Ecosystem Services";
+    private Object projectName_short;
 
-    public static final String GLUES_PROJECT_NAME_SHORT = "GLUES";
+    private String project_url;
 
-    public static final String GLUES_PROJECT_URL = "http://modul-a.nachhaltiges-landmanagement.de/en/scientific-coordination-glues/";
+    private String project_uri;
 
-    private static Logger log = LoggerFactory.getLogger(IsoToRdfMapper.class);
+    private Configuration config;
 
-    public IsoToRdfMapper() {
+    private static Logger log = LoggerFactory.getLogger(CSWtoRDFMapper.class);
+
+    public CSWtoRDFMapper(Configuration config, String uriBase, String projectUrl, String projectName, String projectNameShort) {
+        this.config = config;
+
+        this.uriBase_ = uriBase;
+
+        uriBase_person = uriBase_ + "person/";
+        uriBase_organisation = uriBase_ + "organization/";
+        uriBase_project = uriBase_ + "project/";
+        uriBase_record = uriBase_ + "record/";
+        uriBase_types = uriBase_ + "types/";
+        uriBase_process = uriBase_ + "process/";
+        projectName_long = projectName;
+        projectName_short = projectNameShort;
+        project_url = projectUrl;
+        project_uri = uriBase_project + projectName_short;
+
         log.debug("NEW {}", this);
     }
 
-    public Model createModelFromGetRecordByIdResponse(GetRecordByIdResponseDocument getRecordByIdResponse) throws XmlException, OXFException, IOException {
-        // create an empty Model
-        Model model = ModelFactory.createDefaultModel();
+    public CSWtoRDFMapper(Configuration config) {
+        this(config, config.getUriBase(), config.getProjectUrl(), config.getProjectName(), config.getProjectShortname());
+    }
 
-        return addGetRecordByIdResponseToModel(model, getRecordByIdResponse);
+    @Override
+    public Model map(XmlObject xml) throws OXFException, XmlException {
+        if (xml instanceof GetRecordByIdResponseDocument) {
+            GetRecordByIdResponseDocument doc = (GetRecordByIdResponseDocument) xml;
+            
+            Model m = ModelFactory.createDefaultModel();
+            return addGetRecordByIdResponseToModel(m, doc);
+        }
+        String s = xml.xmlText().substring(0, Math.min(xml.xmlText().length(), 200));
+        log.error("XmlObject not supported by this mapper: {}", s);
+
+        throw new UnsupportedOperationException("XML instance is not supported by this mapper: " + s);
     }
 
     /**
@@ -130,77 +153,70 @@ public class IsoToRdfMapper {
      * 
      * @return the model if everything went fine, otherwise null
      */
-    public Model addGetRecordByIdResponseToModel(Model model,
-            GetRecordByIdResponseDocument xb_getRecordByIdResponse) throws XmlException, OXFException, IOException {
-        //
-        // start reading GetRecordById response:
-        //
+    protected Model addGetRecordByIdResponseToModel(Model model, GetRecordByIdResponseDocument xb_getRecordByIdResponse) throws XmlException, OXFException {
+        log.debug("Start addGetRecordByIdResponse");
         Node xb_MDMetadataNode = xb_getRecordByIdResponse.getGetRecordByIdResponse().getDomNode().getChildNodes().item(0);
 
-        if(xb_MDMetadataNode == null) {
+        if (xb_MDMetadataNode == null) {
             log.warn("Could not get first child node from response: {}", xb_getRecordByIdResponse.xmlText());
             return null;
         }
-        
+
+        log.debug("Start parsing...");
         MDMetadataType xb_metadata = MDMetadataDocument.Factory.parse(xb_MDMetadataNode).getMDMetadata();
         String recordId = xb_metadata.getFileIdentifier().getCharacterString();
 
         // create the record resource
-        Resource recordResource = model.createResource(URI_BASE_RECORDS + recordId);
-        log.debug("Adding {} as resource {}", recordId, recordResource);
+        Resource recordResource = model.createResource(uriBase_record + recordId);
+        log.debug("Parsing done. Mapping '{}' to resource '{}'", recordId, recordResource);
 
-        //
-        // start adding RDF to model:
-        //
+        log.trace("Mapping literals for {}", recordResource);
         addLiteral(recordResource, xb_metadata.getFileIdentifier(), DC_11.identifier);
         addLiteral(recordResource, xb_metadata.getParentIdentifier(), DC_11.source);
         addLiteral(recordResource, xb_metadata.getLanguage(), DC_11.language);
 
-        MDScopeCodePropertyType[] xb_hierarchyLevelArray = xb_metadata.getHierarchyLevelArray();
-        for (int i = 0; i < xb_hierarchyLevelArray.length; i++) {
-            String hierarchyLevelCode = xb_hierarchyLevelArray[i].getMDScopeCode().getCodeListValue();
-            recordResource.addProperty(DC_11.type, URI_BASE_TYPES + hierarchyLevelCode);
+        log.trace("Mappping scope code {}", recordResource);
+        mapScopeCode(xb_metadata, recordResource);
+
+        log.trace("Mapping responsible party for {}", recordResource);
+        mapResponsibleParty(model, xb_metadata, recordResource);
+
+        log.trace("Mapping date for {}", recordResource);
+        parseDateStamp(xb_metadata, recordResource);
+
+        log.trace("Mapping reference system for {}", recordResource);
+        parseReferenceSystem(xb_metadata, recordResource);
+
+        log.trace("Mapping identification for {}", recordResource);
+        parseIdentification(model, xb_metadata, recordId, recordResource);
+
+        log.trace("mapping distribution for {}", recordResource);
+        MDDistributionPropertyType distributionInfoType = xb_metadata.getDistributionInfo();
+        if (distributionInfoType != null) {
+            MDDistributionType distributionInfo = distributionInfoType.getMDDistribution();
+            parseDistribution(model, recordResource, distributionInfo);
         }
 
-        // CharacterStringPropertyType[] xb_hierarchyLevelNameArray =
-        // xb_metadata.getHierarchyLevelNameArray();
-
-        CIResponsiblePartyPropertyType[] xb_contactArray = xb_metadata.getContactArray();
-        for (int i = 0; i < xb_contactArray.length; i++) {
-            CIResponsiblePartyType contact = xb_contactArray[i].getCIResponsibleParty();
-
-            parseResponsibleParty(model, recordResource, contact);
+        log.trace("Mapping quality for {}", recordResource);
+        if (xb_metadata.getDataQualityInfoArray() != null) {
+            parseDataQuality(model, xb_metadata, recordId, recordResource);
         }
 
-        if (xb_metadata.getDateStamp() != null) {
-            Calendar date = xb_metadata.getDateStamp().getDate();
-            if (date != null) {
-                recordResource.addProperty(DCTerms.modified, date.toString());
-            }
-            Calendar dateTime = xb_metadata.getDateStamp().getDateTime();
-            if (dateTime != null) {
-                recordResource.addProperty(DCTerms.modified, dateTime.toString());
-            }
-        }
+        log.debug("Done mapping '{}'", recordResource);
+        return model;
+    }
 
-        MDReferenceSystemPropertyType[] referenceArray = xb_metadata.getReferenceSystemInfoArray();
-        for (int i = 0; i < referenceArray.length; i++) {
-            String refCode = referenceArray[i].getMDReferenceSystem().getReferenceSystemIdentifier().getRSIdentifier().getCode().getCharacterString();
-            String refCodeSpace = referenceArray[i].getMDReferenceSystem().getReferenceSystemIdentifier().getRSIdentifier().getCodeSpace().getCharacterString();
-
-            recordResource.addProperty(DCTerms.spatial, refCodeSpace + "::" + refCode);
-        }
-
-        //
-        // Parse Identification Info:
-        //
+    private void parseIdentification(Model model,
+            MDMetadataType xb_metadata,
+            String recordId,
+            Resource recordResource) throws OXFException {
         MDIdentificationPropertyType[] idInfoArray = xb_metadata.getIdentificationInfoArray();
         for (int i = 0; i < idInfoArray.length; i++) {
             AbstractMDIdentificationType identification = idInfoArray[i].getAbstractMDIdentification();
-            
-            if(identification == null) {
-                log.warn("No identification provided for {}, metadata is: {}", recordId, xb_metadata.xmlText());
-                return null;
+
+            if (identification == null) {
+                log.warn("No identification provided for {}, skipping identification {} of {} for: {}", recordId, i, idInfoArray.length, xb_metadata.xmlText());
+                continue;
             }
 
             if (identification.getCitation() != null) {
@@ -241,172 +257,211 @@ public class IsoToRdfMapper {
             // }
 
             // parse topicCategories:
-            XmlObject[] xmlObjectArray = identification.selectChildren(Constants.getInstance().getNsGMD(), "topicCategory");
+            XmlObject[] xmlObjectArray = identification.selectChildren(config.getNsGMD(), "topicCategory");
             for (int j = 0; j < xmlObjectArray.length; j++) {
                 MDTopicCategoryCodePropertyType topicCategory = (MDTopicCategoryCodePropertyType) xmlObjectArray[j];
                 recordResource.addLiteral(DC_11.subject, topicCategory.getMDTopicCategoryCode().toString());
             }
         }
+    }
 
-        //
-        // Parse Distribution Info:
-        //
-        MDDistributionPropertyType distributionInfoType = xb_metadata.getDistributionInfo();
-        if (distributionInfoType != null) {
-            MDDistributionType distributionInfo = distributionInfoType.getMDDistribution();
+    private void parseReferenceSystem(MDMetadataType xb_metadata,
+            Resource recordResource) {
+        MDReferenceSystemPropertyType[] referenceArray = xb_metadata.getReferenceSystemInfoArray();
+        for (int i = 0; i < referenceArray.length; i++) {
+            String refCode = referenceArray[i].getMDReferenceSystem().getReferenceSystemIdentifier().getRSIdentifier().getCode().getCharacterString();
+            String refCodeSpace = referenceArray[i].getMDReferenceSystem().getReferenceSystemIdentifier().getRSIdentifier().getCodeSpace().getCharacterString();
 
-            if (distributionInfo != null) {
+            recordResource.addProperty(DCTerms.spatial, refCodeSpace + "::" + refCode);
+        }
+    }
 
-                for (int i = 0; i < distributionInfo.getDistributionFormatArray().length; i++) {
-                    MDFormatType format = distributionInfo.getDistributionFormatArray(i).getMDFormat();
+    private void mapResponsibleParty(Model model,
+            MDMetadataType xb_metadata,
+            Resource recordResource) throws OXFException {
+        CIResponsiblePartyPropertyType[] xb_contactArray = xb_metadata.getContactArray();
+        for (int i = 0; i < xb_contactArray.length; i++) {
+            CIResponsiblePartyType contact = xb_contactArray[i].getCIResponsibleParty();
 
-                    if (format != null) {
-                        addLiteral(recordResource, format.getName(), DCTerms.format);
-                        addLiteral(recordResource, format.getSpecification(), DCTerms.format);
+            parseResponsibleParty(model, recordResource, contact);
+        }
+    }
+
+    private void parseDateStamp(MDMetadataType xb_metadata,
+            Resource recordResource) {
+        if (xb_metadata.getDateStamp() != null) {
+            Calendar date = xb_metadata.getDateStamp().getDate();
+            if (date != null) {
+                recordResource.addProperty(DCTerms.modified, date.toString());
+            }
+            Calendar dateTime = xb_metadata.getDateStamp().getDateTime();
+            if (dateTime != null) {
+                recordResource.addProperty(DCTerms.modified, dateTime.toString());
+            }
+        }
+    }
+
+    private void mapScopeCode(MDMetadataType xb_metadata,
+            Resource recordResource) {
+        MDScopeCodePropertyType[] xb_hierarchyLevelArray = xb_metadata.getHierarchyLevelArray();
+        for (int i = 0; i < xb_hierarchyLevelArray.length; i++) {
+            String hierarchyLevelCode = xb_hierarchyLevelArray[i].getMDScopeCode().getCodeListValue();
+            recordResource.addProperty(DC_11.type, uriBase_types + hierarchyLevelCode);
+        }
+    }
+
+    /**
+     * This means parsing the ISO 19115 lineage and translating it to PROV. See
+     * also http://www.w3.org/2001/sw/wiki/images/a/a1/Lineage.owl for a
+     * suggested mapping.
+     */
+    private void parseDataQuality(Model model,
+            MDMetadataType xb_metadata,
+            String recordId,
+            Resource recordResource) throws XmlException, OXFException {
+        for (int i = 0; i < xb_metadata.getDataQualityInfoArray().length; i++) {
+            DQDataQualityType dataQuality = xb_metadata.getDataQualityInfoArray(i).getDQDataQuality();
+
+            if (dataQuality.getLineage() != null) {
+                LILineageType lineage = dataQuality.getLineage().getLILineage();
+
+                // create provenance resource 'processStepResource'
+                Resource processStepResource = model.createResource(uriBase_process + recordId);
+                processStepResource.addProperty(RDF.type, DCTerms.ProvenanceStatement);
+                processStepResource.addProperty(RDF.type, PROV.Activity);
+
+                // associate 'processStepResource' with 'recordResource'
+                processStepResource.addProperty(PROV.generated, recordResource); // /
+                                                                                 // TODO
+                                                                                 // really
+                                                                                 // recordResource
+                                                                                 // or
+                                                                                 // new
+                                                                                 // generated
+                                                                                 // resource???
+
+                if (lineage.getProcessStepArray() != null) {
+                    for (int j = 0; j < lineage.getProcessStepArray().length; j++) {
+
+                        LEProcessStepType processStep = LEProcessStepType.Factory.parse(lineage.getProcessStepArray(j).getDomNode().getFirstChild());
+
+                        if (processStep != null) {
+
+                            addLiteral(processStepResource, processStep.getDescription(), DC_11.description);
+
+                            addLiteral(processStepResource, processStep.getRationale(), DCTerms.abstract_);
+
+                            if (processStep.getDateTime() != null) {
+                                processStepResource.addProperty(DCTerms.date, processStep.getDateTime().toString());
+                            }
+
+                            if (processStep.getProcessorArray() != null) {
+                                for (int h = 0; h < processStep.getProcessorArray().length; h++) {
+                                    CIResponsiblePartyPropertyType processorDude = processStep.getProcessorArray(h);
+                                    parseResponsibleParty(model, processStepResource, processorDude.getCIResponsibleParty());
+                                }
+                            }
+
+                            //
+                            // parsing source(s) of this dataset:
+                            //
+                            if (processStep.getSourceArray() != null) {
+                                for (int h = 0; h < processStep.getSourceArray().length; h++) {
+                                    LISourceType source = processStep.getSourceArray(h).getLISource();
+
+                                    Resource sourceResource = model.createResource();
+                                    sourceResource.addProperty(RDF.type, PROV.Entity);
+
+                                    addLiteral(sourceResource, source.getDescription(), DC_11.description);
+
+                                    if (source.getSourceCitation() != null) {
+                                        parseCitation(recordResource, source.getSourceCitation().getCICitation());
+                                    }
+
+                                    // associate 'source' with
+                                    // 'processStepResource':
+                                    processStepResource.addProperty(PROV.used, sourceResource);
+                                }
+                            }
+                        }
+
+                        //
+                        // parsing processingInformation of this
+                        // processStep:
+                        // <gmi:LE_ProcessStep
+                        // xmlns:gmi="http://eden.ign.fr/xsd/metafor/20050620/gmi"
+                        // xmlns="http://www.isotc211.org/2005/gmd"
+                        // xmlns:gco="http://www.isotc211.org/2005/gco">
+                        // ...
+                        // <gmi:processingInformation>
+                        // <gmi:LE_Processing>
+                        // ...
+
+                        // TODO XMLBeans parsing doesn't work! Extremely
+                        // wild HACK follows...
+
+                        // LEProcessingPropertyType processingProperty =
+                        // LEProcessingPropertyType.Factory.parse(processStep.getDomNode().getLastChild().getLastChild());
+                        // if (processingProperty != null) {
+                        // LEProcessingType processing =
+                        // LEProcessingType.Factory.parse(processingProperty.getDomNode().getFirstChild(),
+                        // xmlOptions);
+                        //
+                        // //assuming identifier on first position
+                        // MDIdentifierPropertyType identifier =
+                        // MDIdentifierPropertyType.Factory.parse(processing.getDomNode().getFirstChild().getFirstChild().getFirstChild());
+                        //
+                        // if (identifier != null) {
+                        // parseIdentifier(processStepResource,
+                        // identifier.getMDIdentifier());
+                        // }
+                        //
+                        // addLiteral(processStepResource,
+                        // processing.getProcedureDescription(),
+                        // DC.description);
+                        //
+                        // if (processing.getDocumentationArray() != null) {
+                        // for (int k = 0; k <
+                        // processing.getDocumentationArray().length; k++) {
+                        // parseCitation(processStepResource,
+                        // processing.getDocumentationArray(k).getCICitation());
+                        // }
+                        // }
+                        // }
                     }
                 }
 
-                for (int i = 0; i < distributionInfo.getDistributorArray().length; i++) {
-                    MDDistributorType distributor = distributionInfo.getDistributorArray(i).getMDDistributor();
+                recordResource.addProperty(DCTerms.provenance, processStepResource);
+            }
+        }
+    }
 
-                    if (distributor != null) {
-                        if (distributor.getDistributorContact() != null) {
-                            if (distributor.getDistributorContact().getCIResponsibleParty() != null) {
-                                parseResponsibleParty(model, recordResource, distributor.getDistributorContact().getCIResponsibleParty());
-                            }
+    private void parseDistribution(Model model,
+            Resource recordResource,
+            MDDistributionType distributionInfo) throws OXFException {
+        if (distributionInfo != null) {
+
+            for (int i = 0; i < distributionInfo.getDistributionFormatArray().length; i++) {
+                MDFormatType format = distributionInfo.getDistributionFormatArray(i).getMDFormat();
+
+                if (format != null) {
+                    addLiteral(recordResource, format.getName(), DCTerms.format);
+                    addLiteral(recordResource, format.getSpecification(), DCTerms.format);
+                }
+            }
+
+            for (int i = 0; i < distributionInfo.getDistributorArray().length; i++) {
+                MDDistributorType distributor = distributionInfo.getDistributorArray(i).getMDDistributor();
+
+                if (distributor != null) {
+                    if (distributor.getDistributorContact() != null) {
+                        if (distributor.getDistributorContact().getCIResponsibleParty() != null) {
+                            parseResponsibleParty(model, recordResource, distributor.getDistributorContact().getCIResponsibleParty());
                         }
                     }
                 }
             }
         }
-
-        //
-        // Parse Data Quality Info:
-        //
-        // This means parsing the ISO 19115 lineage and translating it to PROV.
-        // See also http://www.w3.org/2001/sw/wiki/images/a/a1/Lineage.owl for a
-        // suggested mapping
-        //
-        if (xb_metadata.getDataQualityInfoArray() != null) {
-
-            for (int i = 0; i < xb_metadata.getDataQualityInfoArray().length; i++) {
-                DQDataQualityType dataQuality = xb_metadata.getDataQualityInfoArray(i).getDQDataQuality();
-
-                if (dataQuality.getLineage() != null) {
-                    LILineageType lineage = dataQuality.getLineage().getLILineage();
-
-                    // create provenance resource 'processStepResource'
-                    Resource processStepResource = model.createResource(URI_BASE_PROCESS + recordId);
-                    processStepResource.addProperty(RDF.type, DCTerms.ProvenanceStatement);
-                    processStepResource.addProperty(RDF.type, PROV.Activity);
-
-                    // associate 'processStepResource' with 'recordResource'
-                    processStepResource.addProperty(PROV.generated, recordResource); // /
-                                                                                     // TODO
-                                                                                     // really
-                                                                                     // recordResource
-                                                                                     // or
-                                                                                     // new
-                                                                                     // generated
-                                                                                     // resource???
-
-                    if (lineage.getProcessStepArray() != null) {
-                        for (int j = 0; j < lineage.getProcessStepArray().length; j++) {
-
-                            LEProcessStepType processStep = LEProcessStepType.Factory.parse(lineage.getProcessStepArray(j).getDomNode().getFirstChild());
-
-                            if (processStep != null) {
-
-                                addLiteral(processStepResource, processStep.getDescription(), DC_11.description);
-
-                                addLiteral(processStepResource, processStep.getRationale(), DCTerms.abstract_);
-
-                                if (processStep.getDateTime() != null) {
-                                    processStepResource.addProperty(DCTerms.date, processStep.getDateTime().toString());
-                                }
-
-                                if (processStep.getProcessorArray() != null) {
-                                    for (int h = 0; h < processStep.getProcessorArray().length; h++) {
-                                        CIResponsiblePartyPropertyType processorDude = processStep.getProcessorArray(h);
-                                        parseResponsibleParty(model, processStepResource, processorDude.getCIResponsibleParty());
-                                    }
-                                }
-
-                                //
-                                // parsing source(s) of this dataset:
-                                //
-                                if (processStep.getSourceArray() != null) {
-                                    for (int h = 0; h < processStep.getSourceArray().length; h++) {
-                                        LISourceType source = processStep.getSourceArray(h).getLISource();
-
-                                        Resource sourceResource = model.createResource();
-                                        sourceResource.addProperty(RDF.type, PROV.Entity);
-
-                                        addLiteral(sourceResource, source.getDescription(), DC_11.description);
-
-                                        if (source.getSourceCitation() != null) {
-                                            parseCitation(recordResource, source.getSourceCitation().getCICitation());
-                                        }
-
-                                        // associate 'source' with
-                                        // 'processStepResource':
-                                        processStepResource.addProperty(PROV.used, sourceResource);
-                                    }
-                                }
-                            }
-
-                            //
-                            // parsing processingInformation of this
-                            // processStep:
-                            // <gmi:LE_ProcessStep
-                            // xmlns:gmi="http://eden.ign.fr/xsd/metafor/20050620/gmi"
-                            // xmlns="http://www.isotc211.org/2005/gmd"
-                            // xmlns:gco="http://www.isotc211.org/2005/gco">
-                            // ...
-                            // <gmi:processingInformation>
-                            // <gmi:LE_Processing>
-                            // ...
-
-                            // TODO XMLBeans parsing doesn't work! Extremely
-                            // wild HACK follows...
-
-                            // LEProcessingPropertyType processingProperty =
-                            // LEProcessingPropertyType.Factory.parse(processStep.getDomNode().getLastChild().getLastChild());
-                            // if (processingProperty != null) {
-                            // LEProcessingType processing =
-                            // LEProcessingType.Factory.parse(processingProperty.getDomNode().getFirstChild(),
-                            // xmlOptions);
-                            //
-                            // //assuming identifier on first position
-                            // MDIdentifierPropertyType identifier =
-                            // MDIdentifierPropertyType.Factory.parse(processing.getDomNode().getFirstChild().getFirstChild().getFirstChild());
-                            //
-                            // if (identifier != null) {
-                            // parseIdentifier(processStepResource,
-                            // identifier.getMDIdentifier());
-                            // }
-                            //
-                            // addLiteral(processStepResource,
-                            // processing.getProcedureDescription(),
-                            // DC.description);
-                            //
-                            // if (processing.getDocumentationArray() != null) {
-                            // for (int k = 0; k <
-                            // processing.getDocumentationArray().length; k++) {
-                            // parseCitation(processStepResource,
-                            // processing.getDocumentationArray(k).getCICitation());
-                            // }
-                            // }
-                            // }
-                        }
-                    }
-
-                    recordResource.addProperty(DCTerms.provenance, processStepResource);
-                }
-            }
-        }
-
-        return model;
     }
 
     private static void parseCitation(Resource resource,
@@ -492,27 +547,27 @@ public class IsoToRdfMapper {
      * @return the created Resource for the responsibleParty
      * @throws OXFException
      */
-    private static Resource parseResponsibleParty(Model model,
+    private Resource parseResponsibleParty(Model model,
             Resource resource,
             CIResponsiblePartyType responsibleParty) throws OXFException {
         if (responsibleParty.getIndividualName() != null) {
             // create resource for individual person contact:
             String name = responsibleParty.getIndividualName().getCharacterString();
-            Resource personResource = model.createResource(URI_BASE_PERSONS + name.replace(" ", "-"));
+            Resource personResource = model.createResource(uriBase_person + name.replace(" ", "-"));
             personResource.addLiteral(FOAF.name, name);
             personResource.addLiteral(VCARD.FN, name);
             personResource.addProperty(RDF.type, FOAF.Person);
             personResource.addProperty(RDF.type, FOAF.Agent);
             personResource.addProperty(RDF.type, DCTerms.Agent);
 
-            // associate with GLUES project:
-            Resource gluesProject = model.createResource(URI_GLUES_PROJECT);
+            // associate with a project:
+            Resource gluesProject = model.createResource(project_uri);
             gluesProject.addProperty(RDF.type, FOAF.Project);
-            gluesProject.addLiteral(FOAF.name, GLUES_PROJECT_NAME_LONG);
-            gluesProject.addLiteral(FOAF.name, GLUES_PROJECT_NAME_SHORT);
-            gluesProject.addProperty(FOAF.homepage, GLUES_PROJECT_URL);
+            gluesProject.addLiteral(FOAF.name, projectName_long);
+            gluesProject.addLiteral(FOAF.name, projectName_short);
+            gluesProject.addProperty(FOAF.homepage, project_url);
             gluesProject.addProperty(FOAF.member, personResource);
-            personResource.addProperty(FOAF.currentProject, URI_GLUES_PROJECT);
+            personResource.addProperty(FOAF.currentProject, project_uri);
 
             // read out position name:
             addLiteral(personResource, responsibleParty.getPositionName(), VCARD.ROLE);
@@ -520,7 +575,7 @@ public class IsoToRdfMapper {
             // create resource for organization:
             if (responsibleParty.getOrganisationName() != null) {
                 String orgName = responsibleParty.getOrganisationName().getCharacterString();
-                Resource orgResource = model.createResource(URI_BASE_ORGANIZATIONS + orgName.replace(" ", "-"));
+                Resource orgResource = model.createResource(uriBase_organisation + orgName.replace(" ", "-"));
                 orgResource.addLiteral(FOAF.name, orgName);
                 orgResource.addProperty(RDF.type, FOAF.Organization);
 
@@ -568,7 +623,7 @@ public class IsoToRdfMapper {
                     personResource.addProperty(RDF.type, PROV.Person);
                     resource.addProperty(PROV.wasAssociatedWith, personResource);
                 } else {
-                    log.warn("Unsupported contact role {}: \n{}", contactRoleCode, responsibleParty.xmlText());
+                    log.warn("Unsupported contact role '{}':  ind-name '{}' | orgname '{}'", contactRoleCode, responsibleParty.getIndividualName(), responsibleParty.getOrganisationName());
                     throw new OXFException("Contact role code '" + contactRoleCode + "' not supported.");
                 }
             }
@@ -576,7 +631,7 @@ public class IsoToRdfMapper {
             return personResource;
         }
 
-        log.warn("Unsupported contact for resource {}: \n{}", resource, responsibleParty.xmlText());
+        log.warn("Unsupported contact (non-individual contacts not yet supported) for resource {}: \n{}", resource, responsibleParty.xmlText());
         throw new OXFException("Non-individual contacts not yet supported.");
     }
 
@@ -628,5 +683,10 @@ public class IsoToRdfMapper {
             return true;
         }
         return false;
+    }
+
+    @Override
+    public XmlToRdfMapper replicate() {
+        return new CSWtoRDFMapper(this.config);
     }
 }

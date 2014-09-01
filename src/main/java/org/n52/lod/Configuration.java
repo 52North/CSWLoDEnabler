@@ -26,38 +26,63 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
  * Public License for more details.
  */
-package org.n52.lod.csw;
+package org.n52.lod;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
 
-public class Constants {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class Configuration {
+
+    private static final Logger log = LoggerFactory.getLogger(Configuration.class);
 
     private String nsGMD;
+
     private String nsCSW;
+
     private String urlVirtuosoJdbc;
+
     private String virtuosoUser;
+
     private String virtuosoPass;
+
     private String uriGraph;
-    private String urlCSW;    
+
+    private String urlCSW;
+
     private String testRecordId;
-
     
-    private static Constants instance = null;
-
-    public static Constants getInstance() throws IOException
-    {
-        if (instance == null) {
-            instance = new Constants();
-        }
-        return instance;
-    }
+    private boolean addToServer;
     
-    private Constants () throws IOException {
+    private boolean saveToFile;
+
+    private String projectUrl;
+
+    private String projectName;
+
+    private String projectShortname;
+
+    private String uriBase;
+
+    public static final String DEFAULT_CONFIG_FILE = "/lod.properties";
+
+    public Configuration(String configFile) {
         Properties props = new Properties();
         
-        props.load(Constants.class.getResourceAsStream("/lod.properties"));
-        
+        if(configFile == null)
+            configFile = DEFAULT_CONFIG_FILE;
+
+        log.info("Loading properties from {}", configFile);
+        try(InputStream in = Configuration.class.getResourceAsStream(configFile);) {
+                props.load(in);
+        } catch (IOException| NullPointerException e) {
+            log.error("Could not read properties file {}", configFile, e);
+            return;
+        }
+
         nsGMD = props.getProperty("NS_GMD");
         nsCSW = props.getProperty("NS_CSW");
         urlVirtuosoJdbc = props.getProperty("URL_VIRTUOSO_JDBC");
@@ -66,49 +91,71 @@ public class Constants {
         uriGraph = props.getProperty("URI_GRAPH");
         urlCSW = props.getProperty("URL_CSW");
         testRecordId = props.getProperty("TEST_RECORD_ID");
+        saveToFile = Boolean.valueOf(props.getProperty("SAVE_TO_FILE") );
+        addToServer = Boolean.valueOf(props.getProperty("ADD_TO_SERVER") );
         
+        projectUrl = props.getProperty("PROJECT_URL");
+        projectName = props.getProperty("PROJECT_NAME");
+        projectShortname = props.getProperty("PROJECT_SHORTNAME");
+        uriBase = props.getProperty("URI_BASE");
+        
+        log.info("NEW {}", this);
     }
 
-    public String getNsGMD()
-    {
+    public String getNsGMD() {
         return nsGMD;
     }
 
-    public String getNsCSW()
-    {
+    public String getNsCSW() {
         return nsCSW;
     }
 
-    public String getUrlVirtuosoJdbc()
-    {
+    public String getUrlVirtuosoJdbc() {
         return urlVirtuosoJdbc;
     }
 
-    public String getVirtuosoUser()
-    {
+    public String getVirtuosoUser() {
         return virtuosoUser;
     }
 
-    public String getVirtuosoPass()
-    {
+    public String getVirtuosoPass() {
         return virtuosoPass;
     }
 
-    public String getUriGraph()
-    {
+    public String getUriGraph() {
         return uriGraph;
     }
 
-    public String getUrlCSW()
-    {
+    public String getUrlCSW() {
         return urlCSW;
     }
 
-    public String getTestRecordId()
-    {
+    public String getTestRecordId() {
         return testRecordId;
     }
-    
-    
-    
+
+    public boolean isAddToServer() {
+        return addToServer;
+    }
+
+    public boolean isSaveToFile() {
+        return saveToFile;
+    }
+
+    public String getProjectUrl() {
+        return projectUrl;
+    }
+
+    public String getProjectName() {
+        return projectName;
+    }
+
+    public String getProjectShortname() {
+        return projectShortname;
+    }
+
+    public String getUriBase() {
+        return uriBase;
+    }
+
 }

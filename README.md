@@ -70,31 +70,24 @@ This is a [pubby](http://wifo5-03.informatik.uni-mannheim.de/pubby/) configurati
 <> a conf:Configuration;
     conf:projectName "GLUES LOD";
     conf:projectHomepage <http://nachhaltiges-landmanagement.de/en/scientific-coordination-glues/>;
-	# conf:webBase <http://glues.52north.org/>;
-    conf:webBase <http://localhost:8080/glues-lod/>;
+	conf:webBase <http://localhost:8080/glues-lod/>;
     conf:usePrefixesFrom <>;
     conf:defaultLanguage "en";
-    conf:indexResource <http://glues.52north.org/resource/project/GLUES>;
+    
+	conf:indexResource <http://metadata.demo.52north.org/glues/resource/project/GLUES>;
+	
 	conf:labelProperty rdfs:label, dc:title, foaf:name;
 	conf:commentProperty rdfs:comment, dc:description;
 	conf:imageProperty foaf:depiction;
 	
     conf:dataset [
-		# Deployment configuration
-        #conf:sparqlEndpoint <http://glues.52north.org:8890/sparql>;
-        #conf:sparqlDefaultGraph <http://glues.52north.org/>;
-        #conf:datasetBase <http://glues.52north.org>;
-        #conf:webResourcePrefix "";
-		#conf:addSameAsStatements "true";
-
-		# Development configuration
 		conf:sparqlEndpoint <http://localhost:8890/sparql>;
-        conf:sparqlDefaultGraph <http://glues.52north.org/>;
-        conf:datasetBase <http://glues.52north.org>;
+        #conf:sparqlDefaultGraph <http://metadata.demo.52north.or/glues-lod/2014-08-28A>;
+        conf:datasetBase <http://metadata.demo.52north.org/glues>;
         conf:webResourcePrefix "";
 		conf:addSameAsStatements "true";
 		
-        conf:metadataTemplate "metadata.ttl";
+		#conf:metadataTemplate "metadata.ttl";
     ];
     .
 ```

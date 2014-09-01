@@ -39,6 +39,13 @@
 			<AppenderRef ref="Console" />
 			<AppenderRef ref="Async" />
 		</Logger>
+		 <!-- 
+		<Logger name="org.n52.lod.csw.mapping" level="trace" additivity="false">
+			<AppenderRef ref="Console" />
+		</Logger>
+		<Logger name="org.n52.lod.triplestore.AbstractWorkerTripleSink" level="trace" additivity="false">
+			<AppenderRef ref="Console" />
+		</Logger> -->
 		<Root level="error">
 			<AppenderRef ref="Console" />
 		</Root>

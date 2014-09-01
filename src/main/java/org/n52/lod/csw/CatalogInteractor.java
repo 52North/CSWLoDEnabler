@@ -48,6 +48,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.entity.ContentType;
 import org.apache.xmlbeans.XmlException;
 import org.apache.xmlbeans.XmlOptions;
+import org.n52.lod.Configuration;
 import org.n52.oxf.OXFException;
 import org.n52.oxf.adapter.OperationResult;
 import org.n52.oxf.adapter.ParameterContainer;
@@ -67,11 +68,11 @@ public class CatalogInteractor {
 
     private CSWAdapter adapter;
 
-    private Constants constants;
+    private Configuration config;
 
-    public CatalogInteractor() throws IOException {
+    public CatalogInteractor(Configuration config) {
         adapter = new CSWAdapter();
-        constants = Constants.getInstance();
+        this.config = config;
     }
 
     public String executeGetRecords(int maxRecords,
@@ -86,7 +87,7 @@ public class CatalogInteractor {
         paramCon.addParameterShell(CSWRequestBuilder.GET_RECORDS_QUERY_TYPE_NAMES_PARAMETER, "csw:Record");
         paramCon.addParameterShell(CSWRequestBuilder.GET_RECORDS_ELEMENT_SET_NAME_FORMAT, ElementSetNameType.BRIEF.toString());
 
-        String cswUrl = constants.getUrlCSW();
+        String cswUrl = config.getUrlCSW();
         Operation getRecOp = new Operation(CSWAdapter.GET_RECORDS, cswUrl + "?", cswUrl);
 
         String result = execute(paramCon, getRecOp);
@@ -145,7 +146,7 @@ public class CatalogInteractor {
         String request = xb_getRecordsDocument.xmlText(new XmlOptions().setSavePrettyPrint());
 
         SimpleHttpClient httpClient = new SimpleHttpClient(20000);
-        String cswUrl = constants.getUrlCSW();
+        String cswUrl = config.getUrlCSW();
         HttpResponse response = httpClient.executePost(cswUrl, request, ContentType.TEXT_XML);
         GetRecordsResponseDocument doc = GetRecordsResponseDocument.Factory.parse(response.getEntity().getContent());
         
@@ -157,7 +158,7 @@ public class CatalogInteractor {
         LOGGER.debug("Calling GetRecordsById for record '" + recordID + "'");
 
         String elementSetName = "full";
-        String outputSchema = constants.getNsGMD();
+        String outputSchema = config.getNsGMD();
 
         ParameterContainer paramCon = new ParameterContainer();
         paramCon.addParameterShell(CSWRequestBuilder.GET_RECORD_BY_ID_REQUEST, CSWAdapter.GET_RECORD_BY_ID);
@@ -167,7 +168,7 @@ public class CatalogInteractor {
         paramCon.addParameterShell(CSWRequestBuilder.GET_RECORD_BY_ID_ELEMENT_SET_NAME, elementSetName);
         paramCon.addParameterShell(CSWRequestBuilder.GET_RECORD_BY_ID_OUTPUT_SCHEMA, outputSchema);
 
-        String cswUrl = constants.getUrlCSW();
+        String cswUrl = config.getUrlCSW();
         Operation op = new Operation(CSWAdapter.GET_RECORD_BY_ID, cswUrl + "?", cswUrl);
 
         String result = execute(paramCon, op);

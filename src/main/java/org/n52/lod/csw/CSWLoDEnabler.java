@@ -28,13 +28,15 @@
  */
 package org.n52.lod.csw;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import net.opengis.cat.csw.x202.AbstractRecordType;
 import net.opengis.cat.csw.x202.BriefRecordType;
@@ -44,8 +46,13 @@ import net.opengis.cat.csw.x202.SearchResultsType;
 
 import org.apache.xmlbeans.XmlException;
 import org.apache.xmlbeans.XmlOptions;
-import org.n52.lod.csw.mapping.IsoToRdfMapper;
-import org.n52.lod.vocab.PROV;
+import org.n52.lod.Configuration;
+import org.n52.lod.Report;
+import org.n52.lod.csw.mapping.GluesMapper;
+import org.n52.lod.csw.mapping.XmlToRdfMapper;
+import org.n52.lod.triplestore.FileTripleSink;
+import org.n52.lod.triplestore.TripleSink;
+import org.n52.lod.triplestore.VirtuosoServer;
 import org.n52.oxf.OXFException;
 import org.n52.oxf.ows.ExceptionReport;
 import org.n52.oxf.util.web.HttpClientException;
@@ -53,21 +60,15 @@ import org.purl.dc.elements.x11.SimpleLiteral;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import virtuoso.jena.driver.VirtGraph;
-
-import com.google.common.base.Joiner;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.io.Files;
-import com.hp.hpl.jena.graph.impl.GraphBase;
-import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.ModelFactory;
-import com.hp.hpl.jena.rdf.model.ModelMaker;
-import com.hp.hpl.jena.sparql.vocabulary.FOAF;
-import com.hp.hpl.jena.vocabulary.DCTerms;
-import com.hp.hpl.jena.vocabulary.DC_11;
-import com.hp.hpl.jena.vocabulary.RDF;
-import com.hp.hpl.jena.vocabulary.VCARD;
+import com.google.common.collect.Queues;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 
 /**
  * This is the main class. It allows to start the application and to execute the
@@ -79,102 +80,43 @@ public class CSWLoDEnabler {
 
     private static final Logger log = LoggerFactory.getLogger(CSWLoDEnabler.class);
 
-    private static final int NUMBER_OF_RECORDS_PER_ITERATION = 50;
+    private static final int NUMBER_OF_RECORDS_PER_ITERATION = 25;
 
     private static final long FALLBACK_RECORDS_TOTAL = 10000;
 
-    private static XmlOptions xmlOptions;
+    static XmlOptions xmlOptions;
 
     static {
         xmlOptions = new XmlOptions();
         xmlOptions.setCharacterEncoding("UTF-8");
     }
 
-    protected boolean addToTripleStore = false;
+    protected boolean addToServer = false;
 
     protected boolean saveToFile = false;
 
-    Constants constants = null;
+    Configuration config = null;
 
     private CatalogInteractor csw;
 
-    protected Report report;
+    protected Report report = new Report();
 
-    protected static class Report {
+    protected final Map<String, GetRecordByIdResponseDocument> POISON_PILL = Maps.newHashMap();
 
-        public int added = 0;
+    public CSWLoDEnabler(Configuration config) {
+        POISON_PILL.put("poison", null);
 
-        public long startIndex = 0;
+        addToServer = config.isAddToServer();
+        saveToFile = config.isSaveToFile();
 
-        public long recordNumber = 0;
-
-        public List<String> addedIds = Lists.newArrayList();
-
-        public Map<String, Object> retrievalIssues = Maps.newHashMap();
-
-        public Map<String, Object> issues = Maps.newHashMap();
-
-        public Report() {
-            //
-        }
-
-        @Override
-        public String toString() {
-            StringBuilder builder = new StringBuilder();
-            builder.append("Report [added=");
-            builder.append(added);
-            builder.append(", recordNumber=");
-            builder.append(recordNumber);
-            builder.append(", startIndex=");
-            builder.append(startIndex);
-            if (addedIds != null) {
-                builder.append(", # added=");
-                builder.append(addedIds.size());
-            }
-            if (issues != null) {
-                builder.append(", # issues=");
-                builder.append(issues.size());
-            }
-            if (issues != null) {
-                builder.append(", # retrieval issue=");
-                builder.append(retrievalIssues.size());
-            }
-            builder.append("]");
-            return builder.toString();
-        }
-
-        public String extendedToString() {
-            StringBuilder builder = new StringBuilder();
-            builder.append(toString());
-            if (addedIds != null) {
-                builder.append("\n\n\n\n\n********************** Added **********************\n");
-                builder.append(Arrays.toString(addedIds.toArray()));
-                builder.append(", ");
-            }
-            builder.append("\n\n\n\n\n********************** Issues **********************\n");
-            builder.append(Joiner.on("\n\n").withKeyValueSeparator(" : ").join(issues));
-            builder.append("\n\n\n\n\n***************** Retrieval Issues *****************\n");
-            builder.append(Joiner.on("\n\n").withKeyValueSeparator(" : ").join(retrievalIssues));
-            builder.append("\n\n");
-            builder.append(toString());
-            return builder.toString();
-        }
-    }
-
-    public CSWLoDEnabler(boolean addToTripleStore, boolean saveToFile) throws IOException {
-        this.addToTripleStore = addToTripleStore;
-        this.saveToFile = saveToFile;
-        this.report = new Report();
-
-        constants = Constants.getInstance();
-        csw = new CatalogInteractor();
-
+        this.config = config;
+        this.csw = new CatalogInteractor(config);
         log.info("NEW {}", this);
     }
 
     public static void main(String[] args) {
         try {
-            CSWLoDEnabler enabler = new CSWLoDEnabler(true, true);
+            CSWLoDEnabler enabler = new CSWLoDEnabler(new Configuration(Configuration.DEFAULT_CONFIG_FILE));
             enabler.runOverAll();
         } catch (RuntimeException | IOException e) {
             log.error("Error running CSW to LOD", e);
@@ -197,27 +139,33 @@ public class CSWLoDEnabler {
     public void runStartingFrom(int startPos) throws IOException {
         log.info("STARTING CSW to LOD..");
 
-        if (!(addToTripleStore || saveToFile)) {
+        if (!(addToServer || saveToFile)) {
             log.warn("Neither triple store nor file output are activated.");
             return;
         }
 
-        long timeStart = System.currentTimeMillis();
+        final Stopwatch overallTimer = new Stopwatch();
+        overallTimer.start();
 
-        Model tripleStoreModel = null;
-        if (addToTripleStore) {
+        final Stopwatch retrievingTimer = new Stopwatch();
+        final Stopwatch mappingTimer = new Stopwatch();
+        final Stopwatch otherTimer = new Stopwatch();
+
+        otherTimer.start();
+        XmlToRdfMapper mapper = new GluesMapper(config);
+
+        TripleSink serverSink = null;
+        if (addToServer) {
             try {
-                GraphBase graph = new VirtGraph(constants.getUriGraph(), constants.getUrlVirtuosoJdbc(), constants.getVirtuosoUser(), constants.getVirtuosoPass());
-                tripleStoreModel = configureModel(ModelFactory.createModelForGraph(graph));
+                serverSink = new VirtuosoServer(config, mapper);
             } catch (RuntimeException e) {
                 log.error("Could not connect to graph", e);
             }
         }
 
-        Model fileModel = null;
+        TripleSink fileSink = null;
         if (saveToFile) {
-            ModelMaker fileModelMaker = ModelFactory.createMemModelMaker(); // createFileModelMaker(tempDir.getAbsolutePath());
-            fileModel = configureModel(fileModelMaker.createDefaultModel());
+            fileSink = new FileTripleSink(mapper);
         }
 
         long recordsInTotal = FALLBACK_RECORDS_TOTAL;
@@ -229,117 +177,244 @@ public class CSWLoDEnabler {
         }
         report.startIndex = startPos;
         report.recordNumber = recordsInTotal;
+        otherTimer.stop();
 
+        // main loop
         while (startPos < recordsInTotal) {
-            Map<String, GetRecordByIdResponseDocument> records = null;
-            records = retrieveRecords(startPos, NUMBER_OF_RECORDS_PER_ITERATION, recordsInTotal);
+            retrievingTimer.start();
+            Map<String, GetRecordByIdResponseDocument> records = retrieveRecords(startPos, NUMBER_OF_RECORDS_PER_ITERATION, recordsInTotal);
+            retrievingTimer.stop();
 
-            if (addToTripleStore && tripleStoreModel != null)
-                addRecordsToModel(records, tripleStoreModel);
-            if (saveToFile && fileModel != null)
-                addRecordsToModel(records, fileModel);
+            mappingTimer.start();
+            if (addToServer && serverSink != null)
+                serverSink.addRecords(records, report);
+            if (saveToFile && fileSink != null)
+                fileSink.addRecords(records, report);
+            mappingTimer.stop();
 
             startPos = startPos + NUMBER_OF_RECORDS_PER_ITERATION;
-        }
 
-        if (saveToFile && fileModel != null) {
-            File rdf = File.createTempFile("csw2lod_model_", ".xml");
-            long size = fileModel.size();
-            fileModel.write(Files.newOutputStreamSupplier(rdf).getOutput(), "RDF/XML");
-            Path turtle = rdf.toPath().resolveSibling(rdf.toPath().getFileName().toString().replace("xml", "ttl"));
-            fileModel.write(Files.newOutputStreamSupplier(turtle.toFile()).getOutput(), "TURTLE");
-            fileModel.close();
+            log.debug("Finished intermediate run at {}", overallTimer.toString());
+        } // end of main loop
 
-            log.debug("Saved model in files {} and {}, model size {}", rdf, turtle, size);
-        }
+        otherTimer.start();
+        if (fileSink != null)
+            try {
+                fileSink.close();
+            } catch (Exception e) {
+                log.error("Could not close file sink {}", fileSink, e);
+            }
 
-        if (tripleStoreModel != null)
-            tripleStoreModel.close();
+        if (serverSink != null)
+            try {
+                serverSink.close();
+            } catch (Exception e) {
+                log.error("Could not close server sink {}", serverSink, e);
+            }
 
-        long timeDuration = System.currentTimeMillis() - timeStart;
-        log.info("DONE with CSW to LOD.. duration = {} | {} minutes ", timeDuration, timeDuration / 1000 / 60);
-        log.info("Results: {}", report);
         if (!report.issues.isEmpty())
             log.error(report.extendedToString());
+
+        overallTimer.stop();
+        otherTimer.stop();
+
+        log.info("DONE with CSW to LOD.. duration = {} (retrieving: {}, mapping = {}, other = {})", overallTimer, retrievingTimer, mappingTimer, otherTimer);
+        log.info("Results: {}", report);
+        log.info("Sinks: server = {}, file = {}", addToServer, saveToFile);
+        log.info("Server: {} | File: {}", serverSink, fileSink);
     }
 
-    private Model configureModel(Model model) {
-        model.setNsPrefix("rdf", RDF.getURI());
-        model.setNsPrefix("foaf", FOAF.getURI());
-        model.setNsPrefix("dc", DC_11.getURI());
-        model.setNsPrefix("dcterms", DCTerms.getURI());
-        model.setNsPrefix("vcard", VCARD.getURI());
-        model.setNsPrefix("prov", PROV.getURI());
-        return model;
-    }
+    public void asyncRunStartingFrom(final int startPos) throws IOException {
+        log.info("STARTING CSW to LOD..");
 
-    private void addRecordsToModel(Map<String, GetRecordByIdResponseDocument> records,
-            Model model) {
-        IsoToRdfMapper mapper = new IsoToRdfMapper();
-        int addedCounter = 0;
+        if (!(addToServer || saveToFile)) {
+            log.warn("Neither triple store nor file output are activated.");
+            return;
+        }
 
-        Model result = model;
-        for (Entry<String, GetRecordByIdResponseDocument> entry : records.entrySet()) {
-            log.debug("Adding {} to the model", entry.getKey());
+        final Stopwatch overallTimer = new Stopwatch();
+        overallTimer.start();
 
+        final Stopwatch retrievingTimer = new Stopwatch();
+        final Stopwatch mappingTimer = new Stopwatch();
+        final Stopwatch otherTimer = new Stopwatch();
+
+        otherTimer.start();
+        XmlToRdfMapper mapper = new GluesMapper(config);
+
+        TripleSink serverSink = null;
+        if (addToServer) {
             try {
-                result = mapper.addGetRecordByIdResponseToModel(model, entry.getValue());
-                if (result != null) {
-                    addedCounter++;
-                    this.report.added++;
-                    this.report.addedIds.add(entry.getKey());
-                } else {
-                    this.report.issues.put(entry.getKey(), "Error while adding to model: " + entry.getValue().xmlText());
-                    result = model;
-                }
-            } catch (OXFException | XmlException | IOException e) {
-                log.error("Error processing record {}", entry.getKey(), e);
-                this.report.issues.put(entry.getKey(), e);
+                serverSink = new VirtuosoServer(config, mapper);
+            } catch (RuntimeException e) {
+                log.error("Could not connect to graph", e);
             }
         }
 
-        log.info("Added {} of {} records to model {}, which now has size {}", addedCounter, records.size(), model.getClass(), model.size());
+        TripleSink fileSink = null;
+        if (saveToFile) {
+            fileSink = new FileTripleSink(mapper);
+        }
+
+        long recordsInTotal;
+        try {
+            recordsInTotal = csw.getNumberOfRecords();
+            log.debug("Retrieved number of records from server: {}", recordsInTotal);
+        } catch (IllegalStateException | HttpClientException | XmlException e) {
+            log.error("Could not retrieve number of records from catalog {}, falling back to {}", csw, FALLBACK_RECORDS_TOTAL, e);
+            recordsInTotal = FALLBACK_RECORDS_TOTAL;
+        }
+        report.startIndex = startPos;
+        report.recordNumber = recordsInTotal;
+        otherTimer.stop();
+
+        async(startPos, recordsInTotal, overallTimer, retrievingTimer, mappingTimer, serverSink, fileSink);
+
+        otherTimer.start();
+        if (fileSink != null)
+            try {
+                fileSink.close();
+            } catch (Exception e) {
+                log.error("Could not close file sink {}", fileSink, e);
+            }
+
+        if (serverSink != null)
+            try {
+                serverSink.close();
+            } catch (Exception e) {
+                log.error("Could not close server sink {}", serverSink, e);
+            }
+
+        if (!report.issues.isEmpty())
+            log.error(report.extendedToString());
+
+        overallTimer.stop();
+        otherTimer.stop();
+
+        log.info("DONE with CSW to LOD.. duration = {} (retrieving: {}, mapping = {}, other = {})", overallTimer, retrievingTimer, mappingTimer, otherTimer);
+        log.info("Results: {}", report);
+        log.info("Sinks: server = {}, file = {}", addToServer, saveToFile);
+        log.info("Server: {} | File: {}", serverSink, fileSink);
     }
 
-    private Map<String, GetRecordByIdResponseDocument> retrieveRecords(int startPos,
+    private void async(final int startPos,
+            final long recordCount,
+            final Stopwatch overallTimer,
+            final Stopwatch retrievingTimer,
+            final Stopwatch mappingTimer,
+            final TripleSink serverSink,
+            final TripleSink fileSink) {
+        // processing queue
+        final ConcurrentLinkedQueue<Map<String, GetRecordByIdResponseDocument>> queue = Queues.newConcurrentLinkedQueue();
+
+        // main loop download - producer
+        ExecutorService downloadExecutor = Executors.newSingleThreadExecutor();
+        downloadExecutor.submit(new Runnable() {
+
+            private final Logger logger = LoggerFactory.getLogger("Download Runnable");
+
+            @Override
+            public void run() {
+                int i = startPos;
+                while (i < recordCount) {
+                    retrievingTimer.start();
+                    // Map<String, GetRecordByIdResponseDocument> records =
+                    // retrieveRecords(i, NUMBER_OF_RECORDS_PER_ITERATION,
+                    // recordCount);
+                    Map<String, GetRecordByIdResponseDocument> records = retrieveRecordsThreaded(i, NUMBER_OF_RECORDS_PER_ITERATION, recordCount);
+                    queue.add(records);
+                    retrievingTimer.stop();
+
+                    i = i + NUMBER_OF_RECORDS_PER_ITERATION;
+                    logger.debug("Finished intermediate download run at {}", overallTimer.toString());
+                    logger.info("Retrieved {} records, queue size is now {}", records.size(), queue.size());
+                } // end of main loop
+
+                logger.trace("Done - adding the poison pill!");
+                queue.add(POISON_PILL);
+            }
+        });
+
+        // consumer
+        ExecutorService mapExecutor = Executors.newSingleThreadExecutor();
+        mapExecutor.submit(new Runnable() {
+
+            private final Logger logger = LoggerFactory.getLogger("Map Runnable");
+
+            private boolean isRunning = true;
+
+            @Override
+            public void run() {
+                while (isRunning) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        logger.error("Error sleeping in mapping runnable", e);
+                    }
+
+                    try {
+                        Map<String, GetRecordByIdResponseDocument> records = queue.poll();
+
+                        if (records == null)
+                            continue;
+
+                        if (records == POISON_PILL) {
+                            queue.add(POISON_PILL); // notify other threads to
+                                                    // stop
+                            isRunning = false;
+                            logger.trace("Got the poison pill!");
+                            return;
+                        }
+
+                        // process queueElement
+                        mappingTimer.start();
+                        if (addToServer && serverSink != null)
+                            serverSink.addRecords(records, report);
+                        if (saveToFile && fileSink != null)
+                            fileSink.addRecords(records, report);
+                        mappingTimer.stop();
+
+                        logger.debug("Finished intermediate run at {}", overallTimer.toString());
+
+                    } catch (RuntimeException e) {
+                        logger.error("Error in mapping runnable", e);
+                    }
+                } // end of main loop
+            }
+        });
+
+        downloadExecutor.shutdown();
+        try {
+            downloadExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            log.error("during shut down of download executor", e);
+        }
+        mapExecutor.shutdown();
+        try {
+            mapExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            log.error("during shut down of map executor", e);
+        }
+    }
+
+    protected Map<String, GetRecordByIdResponseDocument> retrieveRecords(int startPos,
             int maxRecords,
             long recordsInTotal) {
         log.info("Retrieve {} records, starting from {} of {}", maxRecords, startPos, recordsInTotal);
+
+        List<String> recordIdList = getRecordIds(startPos, maxRecords);
+
+        Map<String, GetRecordByIdResponseDocument> recordDescriptions = getRecordDescriptions(startPos, maxRecords, recordsInTotal, recordIdList);
+
+        log.info("Done with requests and parsing, have {} GetRecordById documents.", recordDescriptions.size());
+        return recordDescriptions;
+    }
+
+    private Map<String, GetRecordByIdResponseDocument> getRecordDescriptions(int startPos,
+            int maxRecords,
+            long recordsInTotal,
+            List<String> recordIdList) {
         Map<String, GetRecordByIdResponseDocument> recordDescriptions = Maps.newHashMap();
-
-        SearchResultsType searchResults = null;
-        try {
-            String result = csw.executeGetRecords(maxRecords, startPos);
-            GetRecordsResponseDocument responseDoc = GetRecordsResponseDocument.Factory.parse(result);
-            searchResults = responseDoc.getGetRecordsResponse().getSearchResults();
-
-        } catch (OXFException | ExceptionReport | XmlException e) {
-            log.error("Could not retrieving and parsing records {} to {}", startPos, startPos + maxRecords, e);
-            report.retrievalIssues.put("Request for " + startPos + " - " + startPos + maxRecords + " failed.", e);
-            return recordDescriptions;
-        }
-
-        // collect all record IDs:
-        List<String> recordIdList = Lists.newArrayList();
-        AbstractRecordType[] abstractRecordArray = searchResults.getAbstractRecordArray();
-        for (AbstractRecordType abstractRecordType : abstractRecordArray) {
-            try {
-                BriefRecordType abstractRecord = BriefRecordType.Factory.parse(abstractRecordType.xmlText());
-                if (abstractRecord.getIdentifierArray() != null && abstractRecord.getIdentifierArray().length >= 1) {
-                    SimpleLiteral identifierLiteral = SimpleLiteral.Factory.parse(abstractRecord.getIdentifierArray(0).getDomNode());
-                    String recordId = identifierLiteral.getDomNode().getChildNodes().item(0).getChildNodes().item(0).getNodeValue();
-
-                    recordIdList.add(recordId);
-                }
-            } catch (XmlException e) {
-                log.error("Could not parse record {}", abstractRecordType.xmlText(), e);
-                report.retrievalIssues.put("Parsing records response", e);
-                return recordDescriptions;
-            }
-        }
-
-        log.debug("Found {} record ids based on catalog response with {} matched and {} returned", recordIdList.size(), searchResults.getNumberOfRecordsMatched(),
-                searchResults.getNumberOfRecordsReturned());
 
         int i = 0;
         for (String id : recordIdList) {
@@ -357,14 +432,128 @@ public class CSWLoDEnabler {
 
             i++;
         }
-        log.debug("Done with requests and parsing, have {} GetRecordById documents.", recordDescriptions.size());
+        return recordDescriptions;
+    }
+
+    private List<String> getRecordIds(int startPos,
+            int maxRecords) {
+        ArrayList<String> recordIdList = Lists.newArrayList();
+
+        SearchResultsType searchResults = null;
+        try {
+            String result = csw.executeGetRecords(maxRecords, startPos);
+            GetRecordsResponseDocument responseDoc = GetRecordsResponseDocument.Factory.parse(result);
+            searchResults = responseDoc.getGetRecordsResponse().getSearchResults();
+
+        } catch (OXFException | ExceptionReport | XmlException e) {
+            log.error("Could not retrieving and parsing records {} to {}", startPos, startPos + maxRecords, e);
+            report.retrievalIssues.put("Request for " + startPos + " - " + startPos + maxRecords + " failed.", e);
+            return Lists.newArrayList();
+        }
+
+        AbstractRecordType[] abstractRecordArray = searchResults.getAbstractRecordArray();
+        for (AbstractRecordType abstractRecordType : abstractRecordArray) {
+            try {
+                BriefRecordType abstractRecord = BriefRecordType.Factory.parse(abstractRecordType.xmlText());
+                if (abstractRecord.getIdentifierArray() != null && abstractRecord.getIdentifierArray().length >= 1) {
+                    SimpleLiteral identifierLiteral = SimpleLiteral.Factory.parse(abstractRecord.getIdentifierArray(0).getDomNode());
+                    String recordId = identifierLiteral.getDomNode().getChildNodes().item(0).getChildNodes().item(0).getNodeValue();
+
+                    recordIdList.add(recordId);
+                }
+            } catch (XmlException e) {
+                log.error("Could not parse record {}", abstractRecordType.xmlText(), e);
+                report.retrievalIssues.put("Parsing records response", e);
+                return Lists.newArrayList();
+            }
+        }
+        log.debug("Found {} record ids based on catalog response with {} matched and {} returned", recordIdList.size(), searchResults.getNumberOfRecordsMatched(),
+                searchResults.getNumberOfRecordsReturned());
+        return recordIdList;
+    }
+
+    private class CallableRecordDescription implements Callable<GetRecordByIdResponseDocument> {
+
+        private final Logger logger = LoggerFactory.getLogger(CallableRecordDescription.class);
+
+        private String id;
+
+        private CatalogInteractor csw;
+
+        public CallableRecordDescription(String id, CatalogInteractor csw) {
+            this.id = id;
+            this.csw = csw;
+        }
+
+        @Override
+        public GetRecordByIdResponseDocument call() throws Exception {
+            logger.debug("Retrieving {} using {}", this.id, this.csw);
+            String recordDescription = this.csw.executeGetRecordsById(this.id);
+            GetRecordByIdResponseDocument xb_getRecordByIdResponse = GetRecordByIdResponseDocument.Factory.parse(recordDescription, xmlOptions);
+            return xb_getRecordByIdResponse;
+        }
+
+    }
+
+    protected Map<String, GetRecordByIdResponseDocument> retrieveRecordsThreaded(int startPos,
+            int maxRecords,
+            long recordsInTotal) {
+        log.info("Retrieve {} records, starting from {} of {}", maxRecords, startPos, recordsInTotal);
+
+        // one thread for getting ids
+        List<String> recordIdList = getRecordIds(startPos, maxRecords);
+
+        // many threads getting records descriptions
+        final Map<String, GetRecordByIdResponseDocument> recordDescriptions = Maps.newConcurrentMap();
+
+        ListeningExecutorService executorService = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(maxRecords));
+
+        for (String id : recordIdList) {
+            final String recordId = id;
+            log.debug("Adding {} to the model", recordId);
+
+            CallableRecordDescription c = new CallableRecordDescription(id, csw);
+            ListenableFuture<GetRecordByIdResponseDocument> responseFuture = executorService.submit(c);
+
+            Futures.addCallback(responseFuture, new FutureCallback<GetRecordByIdResponseDocument>() {
+
+                private final Logger logger = LoggerFactory.getLogger("Record Downloader");
+
+                @Override
+                public void onFailure(Throwable t) {
+                    logger.error("Error retrieving and parsing record {}", t);
+                    report.retrievalIssues.put(recordId, t);
+                }
+
+                @Override
+                public void onSuccess(GetRecordByIdResponseDocument result) {
+                    logger.trace("SUCCESS with {}", result);
+                    recordDescriptions.put(recordId, result);
+
+                    report.added++;
+                    report.addedIds.add(recordId);
+                }
+
+            });
+        }
+
+        executorService.shutdown();
+        while (!executorService.isTerminated()) {
+            try {
+                executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            } catch (InterruptedException e) {
+                log.error("Could not await termination", e);
+            }
+        }
+
+        log.info("Done with requests and parsing, have {} GetRecordById documents.", recordDescriptions.size());
         return recordDescriptions;
     }
 
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        builder.append("CSWLoDEnabler [addToTripleStore=").append(addToTripleStore).append(", saveToFile=").append(saveToFile).append("]");
+        builder.append("CSWLoDEnabler [addToTripleStore=").append(addToServer).append(", saveToFile=").append(saveToFile).append("]");
         return builder.toString();
     }
 
