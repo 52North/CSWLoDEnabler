@@ -26,11 +26,11 @@ public abstract class AbstractWorkerTripleSink extends AbstractTripleSink {
 
     protected static final Logger log = LoggerFactory.getLogger(AbstractWorkerTripleSink.class);
 
-    private static final int NUM_THREADS = 32;
+    private static final int NUM_THREADS = 4;
 
     public AbstractWorkerTripleSink(XmlToRdfMapper mapper) {
         super(mapper);
-        log.info("NEW {} with {} threads", this, NUM_THREADS);
+        log.info("NEW {} with {} sink feed threads", this, NUM_THREADS);
     }
 
     private class CallableMapper implements Callable<Model> {
@@ -78,8 +78,9 @@ public abstract class AbstractWorkerTripleSink extends AbstractTripleSink {
 
                 @Override
                 public void onSuccess(Model result) {
-                    log.trace("SUCCESS with {}", result);
+                    log.trace("Adding result to model: {}", result);
                     m.add(result);
+                    log.trace("ADDED result to mode.");
 
                     counter.increment();
                     report.added++;

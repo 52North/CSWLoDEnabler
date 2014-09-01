@@ -327,6 +327,7 @@ public class CSWLoDEnabler {
 
                     i = i + NUMBER_OF_RECORDS_PER_ITERATION;
                     logger.debug("Finished intermediate download run at {}", overallTimer.toString());
+                    logger.info("Retrieved {} records, queue size is now {}", records.size(), queue.size());
                 } // end of main loop
 
                 logger.trace("Done - adding the poison pill!");
