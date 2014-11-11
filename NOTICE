@@ -35,8 +35,8 @@ This project includes:
   Jackson-annotations under The Apache Software License, Version 2.0 or GNU Lesser General Public License, Version 2.1
   Jackson-core under The Apache Software License, Version 2.0 or GNU Lesser General Public License, Version 2.1
   jackson-databind under The Apache Software License, Version 2.0 or GNU Lesser General Public License, Version 2.1
+  jai_codec under Java Advanced Imaging Distribution License, http://download.java.net/media/jai/builds/release/1_1_3/LICENSE-jai.txt
   jai_core under Java Advanced Imaging Distribution License, http://download.java.net/media/jai/builds/release/1_1_3/LICENSE-jai.txt
-  javax.media:jai_codec under Java Advanced Imaging Distribution License, http://download.java.net/media/jai/builds/release/1_1_3/LICENSE-jai.txt
   JCL 1.1.1 implemented over SLF4J under MIT License
   jcommon under GNU Lesser General Public Licence
   jfreechart under GNU Lesser General Public Licence
