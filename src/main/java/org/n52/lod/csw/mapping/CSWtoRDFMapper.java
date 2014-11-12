@@ -28,13 +28,20 @@
  */
 package org.n52.lod.csw.mapping;
 
+import java.io.IOException;
+import java.io.StringWriter;
 import java.util.Calendar;
 
 import net.opengis.cat.csw.x202.GetRecordByIdResponseDocument;
+import net.opengis.gml.BoundingBoxDocument;
+import net.opengis.gml.DirectPositionType;
+import net.opengis.gml.EnvelopeType;
 
 import org.apache.xmlbeans.XmlException;
 import org.apache.xmlbeans.XmlObject;
+import org.apache.xmlbeans.XmlOptions;
 import org.isotc211.x2005.gco.CharacterStringPropertyType;
+import org.isotc211.x2005.gmd.AbstractEXGeographicExtentType;
 import org.isotc211.x2005.gmd.AbstractMDIdentificationType;
 import org.isotc211.x2005.gmd.CIAddressType;
 import org.isotc211.x2005.gmd.CICitationType;
@@ -43,8 +50,12 @@ import org.isotc211.x2005.gmd.CIDatePropertyType;
 import org.isotc211.x2005.gmd.CIResponsiblePartyPropertyType;
 import org.isotc211.x2005.gmd.CIResponsiblePartyType;
 import org.isotc211.x2005.gmd.DQDataQualityType;
+import org.isotc211.x2005.gmd.EXExtentPropertyType;
+import org.isotc211.x2005.gmd.EXExtentType;
+import org.isotc211.x2005.gmd.EXGeographicBoundingBoxType;
 import org.isotc211.x2005.gmd.LILineageType;
 import org.isotc211.x2005.gmd.LISourceType;
+import org.isotc211.x2005.gmd.MDDataIdentificationType;
 import org.isotc211.x2005.gmd.MDDistributionPropertyType;
 import org.isotc211.x2005.gmd.MDDistributionType;
 import org.isotc211.x2005.gmd.MDDistributorType;
@@ -61,6 +72,7 @@ import org.isotc211.x2005.gmd.MDTopicCategoryCodePropertyType;
 import org.isotc211.x2005.gmd.RSIdentifierType;
 import org.isotc211.x2005.gmi.LEProcessStepType;
 import org.n52.lod.Configuration;
+import org.n52.lod.vocab.BGSSpatial;
 import org.n52.lod.vocab.PROV;
 import org.n52.oxf.OXFException;
 import org.n52.oxf.valueDomains.time.TimeFactory;
@@ -187,6 +199,9 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
         log.trace("Mapping reference system for {}", recordResource);
         parseReferenceSystem(xb_metadata, recordResource);
 
+        log.trace("Mapping spatial extend for {}", recordResource);        
+        parseSpatialExtend(xb_metadata, recordResource);
+        
         log.trace("Mapping identification for {}", recordResource);
         parseIdentification(model, xb_metadata, recordId, recordResource);
 
@@ -206,6 +221,54 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
         return model;
     }
 
+    private void parseSpatialExtend(MDMetadataType xb_metadata,
+            Resource recordResource)
+    {
+        MDIdentificationPropertyType[] idInfoArray = xb_metadata.getIdentificationInfoArray();
+        
+        AbstractMDIdentificationType identification = idInfoArray[0].getAbstractMDIdentification();
+        
+        if(identification instanceof MDDataIdentificationType){
+            
+            MDDataIdentificationType mdDataIdentificationType = (MDDataIdentificationType)identification;
+            
+            EXExtentPropertyType[] exExtentPropertyTypes = mdDataIdentificationType.getExtentArray();
+            
+            for (EXExtentPropertyType exExtentPropertyType : exExtentPropertyTypes) {
+                
+                EXExtentType exExtentType = exExtentPropertyType.getEXExtent();
+                
+                if(exExtentType != null &&exExtentType.getGeographicElementArray() != null && exExtentType.getGeographicElementArray().length > 0){
+                    
+                    AbstractEXGeographicExtentType abstractEXGeographicExtentType = exExtentType.getGeographicElementArray(0).getAbstractEXGeographicExtent();
+                    
+                    if(abstractEXGeographicExtentType instanceof EXGeographicBoundingBoxType){
+                        
+                        EXGeographicBoundingBoxType exGeographicBoundingBoxType = (EXGeographicBoundingBoxType)abstractEXGeographicExtentType;
+                        
+                        double south = exGeographicBoundingBoxType.getSouthBoundLatitude().getDecimal().doubleValue();
+                        double east = exGeographicBoundingBoxType.getEastBoundLongitude().getDecimal().doubleValue();
+                        double north = exGeographicBoundingBoxType.getNorthBoundLatitude().getDecimal().doubleValue();
+                        double west = exGeographicBoundingBoxType.getWestBoundLongitude().getDecimal().doubleValue();
+                        
+                        String crs = "";
+                        try{
+                            crs = recordResource.getProperty(DCTerms.spatial).getString();
+                        }catch(Exception e){
+                            log.warn("Resource has no reference system property. Saving bounding box without reference system name.");
+                        }
+                        
+                        recordResource.addProperty(BGSSpatial.hasBoundingBox, createGMLBoundingBoxString(south, east, north, west, crs));
+                        
+                    }
+                    
+                }                
+            }
+            
+        }
+        
+    }
+    
     private void parseIdentification(Model model,
             MDMetadataType xb_metadata,
             String recordId,
@@ -658,6 +721,42 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
         return false;
     }
 
+    private String createGMLBoundingBoxString(double south, double east, double north, double west, String crs){
+                
+        EnvelopeType envelopeType = EnvelopeType.Factory.newInstance();
+        
+        DirectPositionType lowerCorner = DirectPositionType.Factory.newInstance();
+        
+        lowerCorner.setStringValue(south + " " + east);
+        
+        DirectPositionType upperCorner = DirectPositionType.Factory.newInstance();
+        
+        upperCorner.setStringValue(north + " " + west);
+        
+        envelopeType.setLowerCorner(lowerCorner);
+        envelopeType.setUpperCorner(upperCorner);
+        envelopeType.setSrsName(crs);
+        
+        BoundingBoxDocument boundingBoxDocument = BoundingBoxDocument.Factory.newInstance();
+        
+        boundingBoxDocument.setBoundingBox(envelopeType);
+        
+        XmlOptions xmlOptions = new XmlOptions();
+        
+        xmlOptions.setSaveNoXmlDecl();
+        
+        StringWriter stringWriter = new StringWriter();    
+        
+        try {
+            boundingBoxDocument.save(stringWriter, xmlOptions);
+        } catch (IOException e) {
+            log.error("Could not save GML BoundingBoxDocument.", e);
+        }
+        
+        return stringWriter.toString();
+        
+    }
+    
     /**
      * Adds all String values of a characterStringPropertyArray as literals to
      * the resource.
