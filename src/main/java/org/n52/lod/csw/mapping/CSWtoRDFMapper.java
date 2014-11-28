@@ -70,7 +70,6 @@ import org.isotc211.x2005.gmd.MDReferenceSystemPropertyType;
 import org.isotc211.x2005.gmd.MDScopeCodePropertyType;
 import org.isotc211.x2005.gmd.MDTopicCategoryCodePropertyType;
 import org.isotc211.x2005.gmd.RSIdentifierType;
-import org.isotc211.x2005.gmi.LEProcessStepType;
 import org.n52.lod.Configuration;
 import org.n52.lod.vocab.BGSSpatial;
 import org.n52.lod.vocab.PROV;
@@ -89,6 +88,9 @@ import com.hp.hpl.jena.vocabulary.DCTerms;
 import com.hp.hpl.jena.vocabulary.DC_11;
 import com.hp.hpl.jena.vocabulary.RDF;
 import com.hp.hpl.jena.vocabulary.VCARD;
+
+import fr.ign.eden.xsd.metafor.x20050620.gmi.LEProcessStepDocument;
+import fr.ign.eden.xsd.metafor.x20050620.gmi.LEProcessStepType;
 
 /**
  * This class maps CSW records encoded as ISO 19115 to RDF.
@@ -406,7 +408,7 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
                 if (lineage.getProcessStepArray() != null) {
                     for (int j = 0; j < lineage.getProcessStepArray().length; j++) {
 
-                        LEProcessStepType processStep = LEProcessStepType.Factory.parse(lineage.getProcessStepArray(j).getDomNode().getFirstChild());
+                        LEProcessStepType processStep = LEProcessStepDocument.Factory.parse(lineage.getProcessStepArray(j).getDomNode().getFirstChild()).getLEProcessStep();
 
                         if (processStep != null) {
 
@@ -428,6 +430,12 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
                             //
                             // parsing source(s) of this dataset:
                             //
+                            /*
+                             * FIXME sourcearray doesn't seem to be parsed correctly
+                             * it is not null, but is empty
+                             * workaround: parse domnode
+                             */
+                            
                             if (processStep.getSourceArray() != null) {
                                 for (int h = 0; h < processStep.getSourceArray().length; h++) {
                                     LISourceType source = processStep.getSourceArray(h).getLISource();
