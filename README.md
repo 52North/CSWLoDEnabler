@@ -70,11 +70,11 @@ This is a [pubby](http://wifo5-03.informatik.uni-mannheim.de/pubby/) configurati
 <> a conf:Configuration;
     conf:projectName "GLUES LOD";
     conf:projectHomepage <http://nachhaltiges-landmanagement.de/en/scientific-coordination-glues/>;
-	conf:webBase <http://localhost:8080/glues-lod/>;
+	conf:webBase <http://localhost:8080/glues-lod/>;#this will replace the URI_BASE (conf:datasetbase respectively) in the pubby browser
     conf:usePrefixesFrom <>;
     conf:defaultLanguage "en";
     
-	conf:indexResource <http://metadata.demo.52north.org/glues/resource/project/GLUES>;
+	conf:indexResource <http://metadata.demo.52north.org/glues/resource/project/GLUES>;#reference to an entity including URI_BASE
 	
 	conf:labelProperty rdfs:label, dc:title, foaf:name;
 	conf:commentProperty rdfs:comment, dc:description;
@@ -82,8 +82,8 @@ This is a [pubby](http://wifo5-03.informatik.uni-mannheim.de/pubby/) configurati
 	
     conf:dataset [
 		conf:sparqlEndpoint <http://localhost:8890/sparql>;
-        #conf:sparqlDefaultGraph <http://metadata.demo.52north.or/glues-lod/2014-08-28A>;
-        conf:datasetBase <http://metadata.demo.52north.org/glues>;
+        #conf:sparqlDefaultGraph <http://metadata.demo.52north.or/glues-lod/2014-08-28A>;#must correspond to URI_GRAPH property of lod.properties
+        conf:datasetBase <http://metadata.demo.52north.org/glues>;#must correspond to URI_BASE property (including slashes)
         conf:webResourcePrefix "";
 		conf:addSameAsStatements "true";
 		
