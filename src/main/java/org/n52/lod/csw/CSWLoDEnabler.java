@@ -49,6 +49,7 @@ import org.apache.xmlbeans.XmlOptions;
 import org.n52.lod.Configuration;
 import org.n52.lod.Report;
 import org.n52.lod.csw.mapping.GluesMapper;
+import org.n52.lod.csw.mapping.WKTLiteralType;
 import org.n52.lod.csw.mapping.XmlToRdfMapper;
 import org.n52.lod.triplestore.FileTripleSink;
 import org.n52.lod.triplestore.TripleSink;
@@ -69,6 +70,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.hp.hpl.jena.datatypes.TypeMapper;
 
 /**
  * This is the main class. It allows to start the application and to execute the
@@ -104,6 +106,11 @@ public class CSWLoDEnabler {
     protected final Map<String, GetRecordByIdResponseDocument> POISON_PILL = Maps.newHashMap();
 
     public CSWLoDEnabler(Configuration config) {
+        
+        WKTLiteralType type = WKTLiteralType.theWKTLiteralType;
+        
+        TypeMapper.getInstance().registerDatatype(type);
+        
         POISON_PILL.put("poison", null);
 
         addToServer = config.isAddToServer();
