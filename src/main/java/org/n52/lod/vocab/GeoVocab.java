@@ -5,12 +5,10 @@ import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.Property;
 
 /**
- * TODO:update
- * Reflecting the "Location, bounding box, point" concept described at:
- * http://data.bgs.ac.uk/ref/Spatial
+ * A vocabulary for describing geographical regions in RDF.
  * 
  * @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
- * @prefix bgsrs: <http://data.bgs.ac.uk/ref/Spatial/> .
+ * @prefix geom: <http://geovocab.org/geometry#> .
  * @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
  * 
  * @author Benjamin Pross
@@ -25,21 +23,15 @@ public class GeoVocab {
     private static final Model m = ModelFactory.createDefaultModel();
     
     /**
-     * TODO:update
      * geo:Point a rdf:Property ; 
-     * rdf:datatype="http://www.w3.org/2001/XMLSchema#string" 
-     * rdfs:label "wktLiteral"@en ; 
-     * rdfs:comment "A Well-known Text serialization of a geometry object."@en
+     * rdfs:comment "Relates a resource to its geometric shape."@en
      * .
      */
     public static final Property geometry = m.createProperty(URI + "geometry");
     
     /**
-     * TODO:update
      * geo:Point a rdf:Property ; 
-     * rdf:datatype="http://www.w3.org/2001/XMLSchema#string" 
-     * rdfs:label "wktLiteral"@en ; 
-     * rdfs:comment "A Well-known Text serialization of a geometry object."@en
+     * rdfs:Super-class grouping all geometrical representations (also ones in non-RDF formats, such as KML, GML, WKT...)."@en
      * .
      */
     public static final Property geometryType = m.createProperty(URI + "Geometry");

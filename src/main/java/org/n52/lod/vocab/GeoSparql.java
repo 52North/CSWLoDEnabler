@@ -6,11 +6,10 @@ import com.hp.hpl.jena.rdf.model.Property;
 
 /**
  * TODO:update
- * Reflecting the "Location, bounding box, point" concept described at:
- * http://data.bgs.ac.uk/ref/Spatial
+ * An RDF/OWL vocabulary for representing spatial information
  * 
  * @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
- * @prefix bgsrs: <http://data.bgs.ac.uk/ref/Spatial/> .
+ * @prefix ogc: <http://www.opengis.net/ont/geosparql#> .
  * @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
  * 
  * @author Benjamin Pross
@@ -25,10 +24,9 @@ public class GeoSparql {
     private static final Model m = ModelFactory.createDefaultModel();
     
     /**
-     * TODO:update
-     * geo:Point a rdf:Property ; 
-     * rdf:datatype="http://www.w3.org/2001/XMLSchema#string" 
-     * rdfs:label "wktLiteral"@en ; 
+     * ogc:asWKT a rdf:Property ; 
+     * rdf:datatype="http://www.opengis.net/ont/geosparql#wktLiteral" 
+     * rdfs:label "Well-known Text Literal"@en ; 
      * rdfs:comment "A Well-known Text serialization of a geometry object."@en
      * .
      */
