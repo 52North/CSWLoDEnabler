@@ -128,6 +128,8 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
     private String project_uri;
 
     private Configuration config;
+    
+    private boolean isRevision = false;
 
     private static Logger log = LoggerFactory.getLogger(CSWtoRDFMapper.class);
 
@@ -224,6 +226,15 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
         log.trace("Mapping quality for {}", recordResource);
         if (xb_metadata.getDataQualityInfoArray() != null) {
             parseDataQuality(model, xb_metadata, recordId, recordResource);
+        }
+        
+        if(xb_metadata.getParentIdentifier() != null){           
+            Resource parentResource = model.createResource(uriBase_record + xb_metadata.getParentIdentifier().getCharacterString());                           
+            if(isRevision){
+                recordResource.addProperty(PROV.wasRevisionOf, parentResource);                                            
+            }else{
+                recordResource.addProperty(PROV.wasDerivedFrom, parentResource);  
+            }            
         }
 
         log.debug("Done mapping '{}'", recordResource);
@@ -589,6 +600,8 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
                                         resource.addProperty(PROV.generatedAtTime, date);
                                     } else if (dateType.equals("creation")) {
                                         resource.addProperty(DCTerms.created, date);
+                                    } else if (dateType.equals("revision")) {
+                                        isRevision = true;
                                     } else {
                                         throw new OXFException("date type '" + dateType + "' not supported");
                                     }
