@@ -31,6 +31,7 @@ package org.n52.lod.csw.mapping;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Calendar;
+import java.util.UUID;
 
 import net.opengis.cat.csw.x202.GetRecordByIdResponseDocument;
 import net.opengis.gml.BoundingBoxDocument;
@@ -72,6 +73,9 @@ import org.isotc211.x2005.gmd.MDTopicCategoryCodePropertyType;
 import org.isotc211.x2005.gmd.RSIdentifierType;
 import org.n52.lod.Configuration;
 import org.n52.lod.vocab.BGSSpatial;
+import org.n52.lod.vocab.BasicGeo;
+import org.n52.lod.vocab.GeoSparql;
+import org.n52.lod.vocab.GeoVocab;
 import org.n52.lod.vocab.PROV;
 import org.n52.oxf.OXFException;
 import org.n52.oxf.valueDomains.time.TimeFactory;
@@ -112,6 +116,8 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
     private String uriBase_types;
 
     private String uriBase_process;
+    
+    private String uriBase_geometry;
 
     private Object projectName_long;
 
@@ -136,6 +142,7 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
         uriBase_record = uriBase_ + "record/";
         uriBase_types = uriBase_ + "types/";
         uriBase_process = uriBase_ + "process/";
+        uriBase_geometry = uriBase_ + "geometry/";
         projectName_long = projectName;
         projectName_short = projectNameShort;
         project_url = projectUrl;
@@ -202,7 +209,7 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
         parseReferenceSystem(xb_metadata, recordResource);
 
         log.trace("Mapping spatial extend for {}", recordResource);        
-        parseSpatialExtend(xb_metadata, recordResource);
+        parseSpatialExtend(xb_metadata, recordResource, model);
         
         log.trace("Mapping identification for {}", recordResource);
         parseIdentification(model, xb_metadata, recordId, recordResource);
@@ -224,7 +231,7 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
     }
 
     private void parseSpatialExtend(MDMetadataType xb_metadata,
-            Resource recordResource)
+            Resource recordResource, Model model)
     {
         MDIdentificationPropertyType[] idInfoArray = xb_metadata.getIdentificationInfoArray();
         
@@ -252,6 +259,25 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
                         double east = exGeographicBoundingBoxType.getEastBoundLongitude().getDecimal().doubleValue();
                         double north = exGeographicBoundingBoxType.getNorthBoundLatitude().getDecimal().doubleValue();
                         double west = exGeographicBoundingBoxType.getWestBoundLongitude().getDecimal().doubleValue();
+                        
+                        //calculate center
+                        double centerLon = (east + west) / 2;
+                        double centerLat = (north + south) / 2;
+                        
+                        recordResource.addProperty(BasicGeo.longitude, "" + centerLon);                        
+                        recordResource.addProperty(BasicGeo.latitude, "" + centerLat);
+                        
+                        /*
+                         * create geometry object
+                         * create property for recordResource
+                         */
+                        Resource geometryResource = model.createResource(uriBase_geometry + UUID.randomUUID().toString().substring(0, 5));                        
+                       
+                        geometryResource.addLiteral(GeoSparql.asWKT, model.createTypedLiteral("POINT(" + centerLon + " "  + centerLat + ")", WKTLiteralType.theWKTLiteralType));
+                        
+                        geometryResource.addProperty(RDF.type, GeoVocab.geometryType);
+                        
+                        recordResource.addProperty(GeoVocab.geometry, geometryResource);
                         
                         String crs = "";
                         try{
