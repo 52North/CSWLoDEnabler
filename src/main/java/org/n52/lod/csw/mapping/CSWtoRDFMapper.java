@@ -614,7 +614,7 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
         }
     }
 
-    private static void parseCitation(Resource resource,
+    private void parseCitation(Resource resource,
             CICitationType citation) throws OXFException {
         // parsing title:
         addLiteral(resource, citation.getTitle(), DC_11.title);
