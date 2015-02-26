@@ -189,13 +189,35 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
         MDMetadataType xb_metadata = MDMetadataDocument.Factory.parse(xb_MDMetadataNode).getMDMetadata();
         String recordId = xb_metadata.getFileIdentifier().getCharacterString();
 
-        // create the record resource
+
+        /*
+         * check also RS_Identifier, as this might be different from the file id.
+         */
+        String resourceID = recordId;
+        try {
+             resourceID = createURIStringFromIdentifier(xb_metadata.getIdentificationInfoArray(0).getAbstractMDIdentification().getCitation().getCICitation().getIdentifierArray(0).getMDIdentifier());          
+        } catch (Exception e) {
+            log.warn("Could not parse RS_Identifier.");
+        }
+        
+        boolean differentIDs = !recordId.equals(resourceID);
+        
+        /*
+         *  create the record resource
+         */
         Resource recordResource = model.createResource(uriBase_record + recordId);
         log.debug("Parsing done. Mapping '{}' to resource '{}'", recordId, recordResource);
 
+        recordResource.addProperty(DC_11.identifier, xb_metadata.getFileIdentifier().getCharacterString());
+        
+        if(differentIDs){
+            /*
+             * add different id to the record for completeness sake
+             */
+            recordResource.addProperty(DC_11.identifier, resourceID);
+        }
+        
         log.trace("Mapping literals for {}", recordResource);
-        addLiteral(recordResource, xb_metadata.getFileIdentifier(), DC_11.identifier);
-        addLiteral(recordResource, xb_metadata.getParentIdentifier(), DC_11.source);
         addLiteral(recordResource, xb_metadata.getLanguage(), DC_11.language);
 
         log.trace("Mappping scope code {}", recordResource);
