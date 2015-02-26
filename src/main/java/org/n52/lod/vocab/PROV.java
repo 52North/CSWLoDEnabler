@@ -66,7 +66,18 @@ public class PROV {
     
     public static final Property generated = m.createProperty(URI + "generated");
     
+    public static final Property wasGeneratedBy = m.createProperty(URI + "wasGeneratedBy");
+    
+    public static final Property wasDerivedFrom = m.createProperty(URI + "wasDerivedFrom");
+    
+    public static final Property hadPrimarySource = m.createProperty(URI + "hadPrimarySource");
+    
+    public static final Property wasPrimarySourceOf = m.createProperty(URI + "wasPrimarySourceOf");
+    
+    public static final Property wasRevisionOf = m.createProperty(URI + "wasRevisionOf");
+    
     public static final Property generatedAtTime = m.createProperty(URI + "generatedAtTime");
+    
     
     private PROV()
     {
