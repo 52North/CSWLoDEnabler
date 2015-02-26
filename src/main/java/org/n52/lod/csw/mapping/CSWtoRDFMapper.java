@@ -62,7 +62,6 @@ import org.isotc211.x2005.gmd.MDDistributionType;
 import org.isotc211.x2005.gmd.MDDistributorType;
 import org.isotc211.x2005.gmd.MDFormatType;
 import org.isotc211.x2005.gmd.MDIdentificationPropertyType;
-import org.isotc211.x2005.gmd.MDIdentifierPropertyType;
 import org.isotc211.x2005.gmd.MDIdentifierType;
 import org.isotc211.x2005.gmd.MDKeywordsPropertyType;
 import org.isotc211.x2005.gmd.MDMetadataDocument;
@@ -765,18 +764,19 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
             // check role of contact:
             if (responsibleParty.getRole() != null) {
                 String contactRoleCode = responsibleParty.getRole().getCIRoleCode().getCodeListValue();
-                if (contactRoleCode != null && contactRoleCode.equals("publisher")) {
+                if (contactRoleCode != null && (contactRoleCode.equals("publisher") || contactRoleCode.equals("distributor") || contactRoleCode.equals("pointOfContact") || contactRoleCode.equals("contact") || contactRoleCode.equals("resourceProvider"))) {
                     resource.addProperty(DC_11.publisher, personResource);
-                } else if (contactRoleCode != null && contactRoleCode.equals("distributor")) {
-                    resource.addProperty(DC_11.publisher, personResource);
-                } else if (contactRoleCode != null && contactRoleCode.equals("pointOfContact")) {
-                    resource.addProperty(DC_11.creator, personResource);
-                } else if (contactRoleCode != null && contactRoleCode.equals("processor")) {
+                } else if (contactRoleCode != null && contactRoleCode.equals("CAPRI network member")) {
+                    resource.addProperty(DC_11.contributor, personResource);
+                } else if (contactRoleCode != null && contactRoleCode.equals("owner")) {
+                    //TODO
+                }  else if (contactRoleCode != null && (contactRoleCode.equals("processor") || contactRoleCode.equals("originator") || contactRoleCode.equals("author"))) {
                     // this 'if' means we are dealing with a provenance
                     // processor ...
                     resource.addProperty(PROV.influencer, personResource);
                     // ... so add further properties:
                     personResource.addProperty(RDF.type, PROV.Person);
+                    personResource.addProperty(PROV.generated, resource);
                     resource.addProperty(PROV.wasAssociatedWith, personResource);
                 } else {
                     log.warn("Unsupported contact role '{}':  ind-name '{}' | orgname '{}'", contactRoleCode, responsibleParty.getIndividualName(), responsibleParty.getOrganisationName());
