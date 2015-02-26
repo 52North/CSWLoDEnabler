@@ -498,8 +498,16 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
                             if (processStep.getSourceArray() != null) {
                                 for (int h = 0; h < processStep.getSourceArray().length; h++) {
                                     LISourceType source = processStep.getSourceArray(h).getLISource();
-
-                                    Resource sourceResource = model.createResource();
+                                    
+                                    String sourceID = getSourceIdentifierCodespaceCharacterString(source);
+                                    
+                                    if(sourceID == ""){
+                                        sourceID = UUID.randomUUID().toString().substring(0, 4);
+                                    }
+                                    
+                                    sourceID = uriBase_record + sourceID;
+                                    
+                                    Resource sourceResource = model.createResource(sourceID);
                                     sourceResource.addProperty(RDF.type, PROV.Entity);
 
                                     addLiteral(sourceResource, source.getDescription(), DC_11.description);
@@ -564,6 +572,18 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
                 recordResource.addProperty(DCTerms.provenance, processStepResource);
             }
         }
+    }
+
+    private String getSourceIdentifierCodespaceCharacterString(LISourceType source)
+    {
+        String result = "";
+        
+        try {
+            result = createURIStringFromIdentifier(source.getSourceCitation().getCICitation().getIdentifierArray(0).getMDIdentifier()); 
+        } catch (Exception e) {
+               log.warn("Could not get source identifier", e);
+        } 
+        return result;
     }
 
     private void parseDistribution(Model model,
