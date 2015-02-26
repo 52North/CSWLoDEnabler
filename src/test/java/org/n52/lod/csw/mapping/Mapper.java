@@ -28,42 +28,71 @@
  */
 package org.n52.lod.csw.mapping;
 
+import static org.junit.Assert.assertTrue;
 import net.opengis.cat.csw.x202.GetRecordByIdResponseDocument;
 
 import org.apache.xmlbeans.XmlOptions;
+import org.isotc211.x2005.gmd.MDMetadataDocument;
+import org.isotc211.x2005.gmd.MDMetadataType;
 import org.junit.Before;
 import org.junit.Test;
 import org.n52.lod.Configuration;
+import org.n52.lod.csw.CSWLoDEnabler;
+import org.n52.oxf.OXFException;
+import org.w3c.dom.Node;
 
-import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
 import com.hp.hpl.jena.graph.Graph;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
+import com.hp.hpl.jena.vocabulary.DC_11;
 
 public class Mapper {
 
     private CSWtoRDFMapper mapper;
 
+    private Model model;
+    
+    private MDMetadataType xb_metadata;
+    
     @Before
-    public void createMapper() {
+    public void createMapper() throws Exception, OXFException {
         Configuration c = new Configuration(Configuration.DEFAULT_CONFIG_FILE);
         this.mapper = new GluesMapper(c);
+        
+        XmlOptions xmlOptions = new XmlOptions();
+        
+        xmlOptions.setCharacterEncoding("UTF-8");
+        
+        xmlOptions.setLoadStripWhitespace();
+        
+        GetRecordByIdResponseDocument xb_getRecordByIdResponse = GetRecordByIdResponseDocument.Factory.parse(Resources.getResource("GetRecordByIdResponse_0.xml"), xmlOptions);
+
+        model = ModelFactory.createDefaultModel();
+        model = this.mapper.addGetRecordByIdResponseToModel(model, xb_getRecordByIdResponse);
+        
+        Node xb_MDMetadataNode = xb_getRecordByIdResponse.getGetRecordByIdResponse().getDomNode().getChildNodes().item(0);
+
+        xb_metadata = MDMetadataDocument.Factory.parse(xb_MDMetadataNode).getMDMetadata();
+        
     }
 
     @Test
     public void mapperMaps() throws Exception {
-        String getRecordResp = Resources.toString(Resources.getResource("GetRecordByIdResponse_0.xml"), Charsets.UTF_8);
-        GetRecordByIdResponseDocument xb_getRecordByIdResponse = GetRecordByIdResponseDocument.Factory.parse(getRecordResp, new XmlOptions());
-
-        Model model = ModelFactory.createDefaultModel();
-        model = this.mapper.addGetRecordByIdResponseToModel(model, xb_getRecordByIdResponse);
 
         Graph graph = model.getGraph();
         System.out.println(model);
         System.out.println(graph);
 
         // TODO add test assertions
+    }
+    
+    @Test
+    public void mapLanguage(){
+        String recordId = xb_metadata.getFileIdentifier().getCharacterString();
+        
+        assertTrue(model.getProperty(model.getResource(mapper.getUriBase_record() +  recordId), DC_11.language).getString().equals("Eng"));
+        
     }
 
 }

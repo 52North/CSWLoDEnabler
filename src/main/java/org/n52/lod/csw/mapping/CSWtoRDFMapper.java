@@ -56,6 +56,7 @@ import org.isotc211.x2005.gmd.EXExtentType;
 import org.isotc211.x2005.gmd.EXGeographicBoundingBoxType;
 import org.isotc211.x2005.gmd.LILineageType;
 import org.isotc211.x2005.gmd.LISourceType;
+import org.isotc211.x2005.gmd.LanguageCodePropertyType;
 import org.isotc211.x2005.gmd.MDDataIdentificationType;
 import org.isotc211.x2005.gmd.MDDistributionPropertyType;
 import org.isotc211.x2005.gmd.MDDistributionType;
@@ -217,7 +218,7 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
         }
         
         log.trace("Mapping literals for {}", recordResource);
-        addLiteral(recordResource, xb_metadata.getLanguage(), DC_11.language);
+        addLanguage(recordResource, xb_metadata.getLanguage());
 
         log.trace("Mappping scope code {}", recordResource);
         mapScopeCode(xb_metadata, recordResource);
@@ -876,9 +877,36 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
         }
         return false;
     }
+    
+    /**
+     * Adds a language value as a literal to a resource after transforming it into a LanguageCodePropertyType.
+     * 
+     * @param resource
+     *            the {@link Resource} to which the language is added as a literal
+     * @param characterStringProperty
+     *            the {@link String} value of this
+     *            {@link CharacterStringPropertyType} is added to the resource
+     * @return true if the literal is added; false otherwise.
+     */
+    private static boolean addLanguage(Resource resource,
+            CharacterStringPropertyType characterStringProperty) {
+        try {
+           String codeListValue = LanguageCodePropertyType.Factory.parse(characterStringProperty.getDomNode().getFirstChild()).getLanguageCode().getCodeListValue();
+           resource.addLiteral(DC_11.language, codeListValue);           
+           return true;
+        } catch (Exception e) {
+            log.warn("Could not parse LanguageCode {}", characterStringProperty);            
+            return false;
+        }
+    }
 
     @Override
     public XmlToRdfMapper replicate() {
         return new CSWtoRDFMapper(this.config);
+    }
+
+    public String getUriBase_record()
+    {
+        return uriBase_record;
     }
 }
