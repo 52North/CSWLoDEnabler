@@ -655,23 +655,28 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
             }
         }
 
-        // parsing identifiers:
-        if (citation.getIdentifierArray() != null) {
-            MDIdentifierPropertyType[] citationIdArray = citation.getIdentifierArray();
-            for (int j = 0; j < citationIdArray.length; j++) {
-                MDIdentifierType citationId = citationIdArray[j].getMDIdentifier();
-                parseIdentifier(resource, citationId);
-            }
-        }
+//        // parsing identifiers:
+//        if (citation.getIdentifierArray() != null) {
+//            MDIdentifierPropertyType[] citationIdArray = citation.getIdentifierArray();
+//            for (int j = 0; j < citationIdArray.length; j++) {
+//                MDIdentifierType citationId = citationIdArray[j].getMDIdentifier();
+//                parseIdentifier(resource, citationId);
+//            }
+//        }
 
     }
 
-    /**
-     * parses an MDIdentifierType element and associates the identifier with the
-     * resource.
-     */
-    private static void parseIdentifier(Resource resource,
-            MDIdentifierType identifier) {
+//    /**
+//     * parses an MDIdentifierType element and associates the identifier with the
+//     * resource.
+//     */
+//    private void parseIdentifier(Resource resource,
+//            MDIdentifierType identifier) {
+//        resource.addProperty(DC_11.identifier, createURIStringFromIdentifier(identifier));
+//    }
+    
+    private String createURIStringFromIdentifier(MDIdentifierType identifier){
+
         String uri;
 
         try {
@@ -688,10 +693,9 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
         } catch (ClassCastException e) {
             uri = identifier.getCode().getCharacterString();
         }
-
-        resource.addProperty(DC_11.identifier, uri);
+        return uri;
     }
-
+    
     /**
      * parses and associates the responsibleParty as a new Resource with the
      * resource.
