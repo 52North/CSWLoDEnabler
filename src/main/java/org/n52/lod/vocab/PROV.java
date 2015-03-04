@@ -61,6 +61,8 @@ public class PROV {
     public static final Property influencer = m.createProperty(URI + "influencer");
     
     public static final Property wasAssociatedWith = m.createProperty(URI + "wasAssociatedWith");
+    
+    public static final Property wasAttributedTo = m.createProperty(URI + "wasAttributedTo");
 
     public static final Property used = m.createProperty(URI + "used");
     

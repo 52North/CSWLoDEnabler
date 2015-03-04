@@ -724,6 +724,7 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
             gluesProject.addProperty(FOAF.homepage, project_url);
             gluesProject.addProperty(FOAF.member, personResource);
             personResource.addProperty(FOAF.currentProject, project_uri);
+            personResource.addProperty(RDF.type, PROV.Person); 
 
             // read out position name:
             addLiteral(personResource, responsibleParty.getPositionName(), VCARD.ROLE);
@@ -767,18 +768,21 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
                 String contactRoleCode = responsibleParty.getRole().getCIRoleCode().getCodeListValue();
                 if (contactRoleCode != null && (contactRoleCode.equals("publisher") || contactRoleCode.equals("distributor") || contactRoleCode.equals("pointOfContact") || contactRoleCode.equals("contact") || contactRoleCode.equals("resourceProvider"))) {
                     resource.addProperty(DC_11.publisher, personResource);
+                    resource.addProperty(PROV.wasAttributedTo, personResource);
                 } else if (contactRoleCode != null && contactRoleCode.equals("CAPRI network member")) {
                     resource.addProperty(DC_11.contributor, personResource);
+                    resource.addProperty(PROV.wasAttributedTo, personResource);
                 } else if (contactRoleCode != null && contactRoleCode.equals("owner")) {
                     //TODO
                 }  else if (contactRoleCode != null && (contactRoleCode.equals("processor") || contactRoleCode.equals("originator") || contactRoleCode.equals("author"))) {
                     // this 'if' means we are dealing with a provenance
                     // processor ...
                     resource.addProperty(PROV.influencer, personResource);
-                    // ... so add further properties:
-                    personResource.addProperty(RDF.type, PROV.Person);
-                    personResource.addProperty(PROV.generated, resource);
-                    resource.addProperty(PROV.wasAssociatedWith, personResource);
+                    // ... so add further properties:                 
+                    
+                    if(resource.getPropertyResourceValue(RDF.type) != null && (resource.getPropertyResourceValue(RDF.type).equals(PROV.Activity) || resource.getPropertyResourceValue(RDF.type).equals(DCTerms.ProvenanceStatement))){                        
+                        resource.addProperty(PROV.wasAssociatedWith, personResource);                        
+                    }
                 } else {
                     log.warn("Unsupported contact role '{}':  ind-name '{}' | orgname '{}'", contactRoleCode, responsibleParty.getIndividualName(), responsibleParty.getOrganisationName());
                     throw new OXFException("Contact role code '" + contactRoleCode + "' not supported.");
