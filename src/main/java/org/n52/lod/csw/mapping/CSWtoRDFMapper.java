@@ -725,6 +725,7 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
             gluesProject.addProperty(FOAF.member, personResource);
             personResource.addProperty(FOAF.currentProject, project_uri);
             personResource.addProperty(RDF.type, PROV.Person); 
+            personResource.addProperty(RDF.type, PROV.Agent); 
 
             // read out position name:
             addLiteral(personResource, responsibleParty.getPositionName(), VCARD.ROLE);
