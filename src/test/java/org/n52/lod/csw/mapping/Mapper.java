@@ -91,7 +91,7 @@ public class Mapper {
     public void mapLanguage(){
         String recordId = xb_metadata.getFileIdentifier().getCharacterString();
         
-        assertTrue(model.getProperty(model.getResource(mapper.getUriBase_record() +  recordId), DC_11.language).getString().equals("Eng"));
+        assertTrue(model.getProperty(model.getResource(mapper.getUriBase_record() +  recordId), DC_11.language).getResource().getURI().toString().equals("http://rdfdata.eionet.europa.eu/page/eea/languages/en"));
         
     }
 

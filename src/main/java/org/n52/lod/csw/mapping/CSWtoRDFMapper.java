@@ -117,6 +117,8 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
     private String uriBase_process;
     
     private String uriBase_geometry;
+    
+    private String uriBase_Language;
 
     private Object projectName_long;
 
@@ -142,6 +144,7 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
         uriBase_types = uriBase_ + "types/";
         uriBase_process = uriBase_ + "process/";
         uriBase_geometry = uriBase_ + "geometry/";
+        uriBase_Language = "http://rdfdata.eionet.europa.eu/page/eea/languages/";
         projectName_long = projectName;
         projectName_short = projectNameShort;
         project_url = projectUrl;
@@ -193,7 +196,7 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
         log.trace("Mapping literals for {}", recordResource);
         addLiteral(recordResource, xb_metadata.getFileIdentifier(), DC_11.identifier);
         addLiteral(recordResource, xb_metadata.getParentIdentifier(), DC_11.source);
-        addLanguage(recordResource, xb_metadata.getLanguage());
+        addLanguage(recordResource, xb_metadata.getLanguage(), model);
 
         log.trace("Mappping scope code {}", recordResource);
         mapScopeCode(xb_metadata, recordResource);
@@ -821,12 +824,26 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
      *            {@link CharacterStringPropertyType} is added to the resource
      * @return true if the literal is added; false otherwise.
      */
-    private static boolean addLanguage(Resource resource,
-            CharacterStringPropertyType characterStringProperty) {
+    private boolean addLanguage(Resource resource,
+            CharacterStringPropertyType characterStringProperty, Model model) {
         try {
            String codeListValue = LanguageCodePropertyType.Factory.parse(characterStringProperty.getDomNode().getFirstChild()).getLanguageCode().getCodeListValue();
-           resource.addLiteral(DC_11.language, codeListValue);           
-           return true;
+           
+           Resource languageResource = null;
+           
+            switch (codeListValue.toLowerCase()) {
+            case "eng":
+                languageResource = model.createResource(uriBase_Language + "en");                
+                resource.addProperty(DC_11.language, languageResource);         
+                return true;  
+            case "ger":
+                languageResource = model.createResource(uriBase_Language + "de");                
+                resource.addProperty(DC_11.language, languageResource);         
+                return true;  
+            default:
+                log.warn("Unknown LanguageCode {}", codeListValue);            
+                return false;
+            }
         } catch (Exception e) {
             log.warn("Could not parse LanguageCode {}", characterStringProperty);            
             return false;
