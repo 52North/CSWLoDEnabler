@@ -63,7 +63,6 @@ import org.isotc211.x2005.gmd.MDDistributionType;
 import org.isotc211.x2005.gmd.MDDistributorType;
 import org.isotc211.x2005.gmd.MDFormatType;
 import org.isotc211.x2005.gmd.MDIdentificationPropertyType;
-import org.isotc211.x2005.gmd.MDIdentifierPropertyType;
 import org.isotc211.x2005.gmd.MDIdentifierType;
 import org.isotc211.x2005.gmd.MDKeywordsPropertyType;
 import org.isotc211.x2005.gmd.MDMetadataDocument;
@@ -72,7 +71,6 @@ import org.isotc211.x2005.gmd.MDReferenceSystemPropertyType;
 import org.isotc211.x2005.gmd.MDScopeCodePropertyType;
 import org.isotc211.x2005.gmd.MDTopicCategoryCodePropertyType;
 import org.isotc211.x2005.gmd.RSIdentifierType;
-import org.isotc211.x2005.gmi.LEProcessStepType;
 import org.n52.lod.Configuration;
 import org.n52.lod.vocab.BGSSpatial;
 import org.n52.lod.vocab.BasicGeo;
@@ -94,6 +92,9 @@ import com.hp.hpl.jena.vocabulary.DCTerms;
 import com.hp.hpl.jena.vocabulary.DC_11;
 import com.hp.hpl.jena.vocabulary.RDF;
 import com.hp.hpl.jena.vocabulary.VCARD;
+
+import fr.ign.eden.xsd.metafor.x20050620.gmi.LEProcessStepDocument;
+import fr.ign.eden.xsd.metafor.x20050620.gmi.LEProcessStepType;
 
 /**
  * This class maps CSW records encoded as ISO 19115 to RDF.
@@ -127,6 +128,8 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
     private String project_uri;
 
     private Configuration config;
+    
+    private boolean isRevision = false;
 
     private static Logger log = LoggerFactory.getLogger(CSWtoRDFMapper.class);
 
@@ -186,13 +189,35 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
         MDMetadataType xb_metadata = MDMetadataDocument.Factory.parse(xb_MDMetadataNode).getMDMetadata();
         String recordId = xb_metadata.getFileIdentifier().getCharacterString();
 
-        // create the record resource
+
+        /*
+         * check also RS_Identifier, as this might be different from the file id.
+         */
+        String resourceID = recordId;
+        try {
+             resourceID = createURIStringFromIdentifier(xb_metadata.getIdentificationInfoArray(0).getAbstractMDIdentification().getCitation().getCICitation().getIdentifierArray(0).getMDIdentifier());          
+        } catch (Exception e) {
+            log.warn("Could not parse RS_Identifier.");
+        }
+        
+        boolean differentIDs = !recordId.equals(resourceID);
+        
+        /*
+         *  create the record resource
+         */
         Resource recordResource = model.createResource(uriBase_record + recordId);
         log.debug("Parsing done. Mapping '{}' to resource '{}'", recordId, recordResource);
 
+        recordResource.addProperty(DC_11.identifier, xb_metadata.getFileIdentifier().getCharacterString());
+        
+        if(differentIDs){
+            /*
+             * add different id to the record for completeness sake
+             */
+            recordResource.addProperty(DC_11.identifier, resourceID);
+        }
+        
         log.trace("Mapping literals for {}", recordResource);
-        addLiteral(recordResource, xb_metadata.getFileIdentifier(), DC_11.identifier);
-        addLiteral(recordResource, xb_metadata.getParentIdentifier(), DC_11.source);
         addLanguage(recordResource, xb_metadata.getLanguage());
 
         log.trace("Mappping scope code {}", recordResource);
@@ -223,6 +248,15 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
         log.trace("Mapping quality for {}", recordResource);
         if (xb_metadata.getDataQualityInfoArray() != null) {
             parseDataQuality(model, xb_metadata, recordId, recordResource);
+        }
+        
+        if(xb_metadata.getParentIdentifier() != null){           
+            Resource parentResource = model.createResource(uriBase_record + xb_metadata.getParentIdentifier().getCharacterString());                           
+            if(isRevision){
+                recordResource.addProperty(PROV.wasRevisionOf, parentResource);                                            
+            }else{
+                recordResource.addProperty(PROV.wasDerivedFrom, parentResource);  
+            }            
         }
 
         log.debug("Done mapping '{}'", recordResource);
@@ -433,7 +467,7 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
                 if (lineage.getProcessStepArray() != null) {
                     for (int j = 0; j < lineage.getProcessStepArray().length; j++) {
 
-                        LEProcessStepType processStep = LEProcessStepType.Factory.parse(lineage.getProcessStepArray(j).getDomNode().getFirstChild());
+                        LEProcessStepType processStep = LEProcessStepDocument.Factory.parse(lineage.getProcessStepArray(j).getDomNode().getFirstChild()).getLEProcessStep();
 
                         if (processStep != null) {
 
@@ -455,11 +489,25 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
                             //
                             // parsing source(s) of this dataset:
                             //
+                            /*
+                             * FIXME sourcearray doesn't seem to be parsed correctly
+                             * it is not null, but is empty
+                             * workaround: parse domnode
+                             */
+                            
                             if (processStep.getSourceArray() != null) {
                                 for (int h = 0; h < processStep.getSourceArray().length; h++) {
                                     LISourceType source = processStep.getSourceArray(h).getLISource();
-
-                                    Resource sourceResource = model.createResource();
+                                    
+                                    String sourceID = getSourceIdentifierCodespaceCharacterString(source);
+                                    
+                                    if(sourceID == ""){
+                                        sourceID = UUID.randomUUID().toString().substring(0, 4);
+                                    }
+                                    
+                                    sourceID = uriBase_record + sourceID;
+                                    
+                                    Resource sourceResource = model.createResource(sourceID);
                                     sourceResource.addProperty(RDF.type, PROV.Entity);
 
                                     addLiteral(sourceResource, source.getDescription(), DC_11.description);
@@ -526,6 +574,18 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
         }
     }
 
+    private String getSourceIdentifierCodespaceCharacterString(LISourceType source)
+    {
+        String result = "";
+        
+        try {
+            result = createURIStringFromIdentifier(source.getSourceCitation().getCICitation().getIdentifierArray(0).getMDIdentifier()); 
+        } catch (Exception e) {
+               log.warn("Could not get source identifier", e);
+        } 
+        return result;
+    }
+
     private void parseDistribution(Model model,
             Resource recordResource,
             MDDistributionType distributionInfo) throws OXFException {
@@ -554,7 +614,7 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
         }
     }
 
-    private static void parseCitation(Resource resource,
+    private void parseCitation(Resource resource,
             CICitationType citation) throws OXFException {
         // parsing title:
         addLiteral(resource, citation.getTitle(), DC_11.title);
@@ -582,6 +642,8 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
                                         resource.addProperty(PROV.generatedAtTime, date);
                                     } else if (dateType.equals("creation")) {
                                         resource.addProperty(DCTerms.created, date);
+                                    } else if (dateType.equals("revision")) {
+                                        isRevision = true;
                                     } else {
                                         throw new OXFException("date type '" + dateType + "' not supported");
                                     }
@@ -593,23 +655,28 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
             }
         }
 
-        // parsing identifiers:
-        if (citation.getIdentifierArray() != null) {
-            MDIdentifierPropertyType[] citationIdArray = citation.getIdentifierArray();
-            for (int j = 0; j < citationIdArray.length; j++) {
-                MDIdentifierType citationId = citationIdArray[j].getMDIdentifier();
-                parseIdentifier(resource, citationId);
-            }
-        }
+//        // parsing identifiers:
+//        if (citation.getIdentifierArray() != null) {
+//            MDIdentifierPropertyType[] citationIdArray = citation.getIdentifierArray();
+//            for (int j = 0; j < citationIdArray.length; j++) {
+//                MDIdentifierType citationId = citationIdArray[j].getMDIdentifier();
+//                parseIdentifier(resource, citationId);
+//            }
+//        }
 
     }
 
-    /**
-     * parses an MDIdentifierType element and associates the identifier with the
-     * resource.
-     */
-    private static void parseIdentifier(Resource resource,
-            MDIdentifierType identifier) {
+//    /**
+//     * parses an MDIdentifierType element and associates the identifier with the
+//     * resource.
+//     */
+//    private void parseIdentifier(Resource resource,
+//            MDIdentifierType identifier) {
+//        resource.addProperty(DC_11.identifier, createURIStringFromIdentifier(identifier));
+//    }
+    
+    private String createURIStringFromIdentifier(MDIdentifierType identifier){
+
         String uri;
 
         try {
@@ -626,10 +693,9 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
         } catch (ClassCastException e) {
             uri = identifier.getCode().getCharacterString();
         }
-
-        resource.addProperty(DC_11.identifier, uri);
+        return uri;
     }
-
+    
     /**
      * parses and associates the responsibleParty as a new Resource with the
      * resource.
@@ -658,6 +724,8 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
             gluesProject.addProperty(FOAF.homepage, project_url);
             gluesProject.addProperty(FOAF.member, personResource);
             personResource.addProperty(FOAF.currentProject, project_uri);
+            personResource.addProperty(RDF.type, PROV.Person); 
+            personResource.addProperty(RDF.type, PROV.Agent); 
 
             // read out position name:
             addLiteral(personResource, responsibleParty.getPositionName(), VCARD.ROLE);
@@ -699,19 +767,23 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
             // check role of contact:
             if (responsibleParty.getRole() != null) {
                 String contactRoleCode = responsibleParty.getRole().getCIRoleCode().getCodeListValue();
-                if (contactRoleCode != null && contactRoleCode.equals("publisher")) {
+                if (contactRoleCode != null && (contactRoleCode.equals("publisher") || contactRoleCode.equals("distributor") || contactRoleCode.equals("pointOfContact") || contactRoleCode.equals("contact") || contactRoleCode.equals("resourceProvider"))) {
                     resource.addProperty(DC_11.publisher, personResource);
-                } else if (contactRoleCode != null && contactRoleCode.equals("distributor")) {
-                    resource.addProperty(DC_11.publisher, personResource);
-                } else if (contactRoleCode != null && contactRoleCode.equals("pointOfContact")) {
-                    resource.addProperty(DC_11.creator, personResource);
-                } else if (contactRoleCode != null && contactRoleCode.equals("processor")) {
+                    resource.addProperty(PROV.wasAttributedTo, personResource);
+                } else if (contactRoleCode != null && contactRoleCode.equals("CAPRI network member")) {
+                    resource.addProperty(DC_11.contributor, personResource);
+                    resource.addProperty(PROV.wasAttributedTo, personResource);
+                } else if (contactRoleCode != null && contactRoleCode.equals("owner")) {
+                    //TODO
+                }  else if (contactRoleCode != null && (contactRoleCode.equals("processor") || contactRoleCode.equals("originator") || contactRoleCode.equals("author"))) {
                     // this 'if' means we are dealing with a provenance
                     // processor ...
                     resource.addProperty(PROV.influencer, personResource);
-                    // ... so add further properties:
-                    personResource.addProperty(RDF.type, PROV.Person);
-                    resource.addProperty(PROV.wasAssociatedWith, personResource);
+                    // ... so add further properties:                 
+                    
+                    if(resource.getPropertyResourceValue(RDF.type) != null && (resource.getPropertyResourceValue(RDF.type).equals(PROV.Activity) || resource.getPropertyResourceValue(RDF.type).equals(DCTerms.ProvenanceStatement))){                        
+                        resource.addProperty(PROV.wasAssociatedWith, personResource);                        
+                    }
                 } else {
                     log.warn("Unsupported contact role '{}':  ind-name '{}' | orgname '{}'", contactRoleCode, responsibleParty.getIndividualName(), responsibleParty.getOrganisationName());
                     throw new OXFException("Contact role code '" + contactRoleCode + "' not supported.");
