@@ -37,7 +37,7 @@ import org.isotc211.x2005.gmd.MDMetadataType;
 import org.junit.Before;
 import org.junit.Test;
 import org.n52.lod.Configuration;
-import org.n52.lod.csw.CSWLoDEnabler;
+import org.n52.lod.vocab.PROV;
 import org.n52.oxf.OXFException;
 import org.w3c.dom.Node;
 
@@ -45,6 +45,7 @@ import com.google.common.io.Resources;
 import com.hp.hpl.jena.graph.Graph;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
+import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.vocabulary.DC_11;
 
 public class Mapper {
@@ -92,6 +93,29 @@ public class Mapper {
         String recordId = xb_metadata.getFileIdentifier().getCharacterString();
         
         assertTrue(model.getProperty(model.getResource(mapper.getUriBase_record() +  recordId), DC_11.language).getResource().getURI().toString().equals("http://rdfdata.eionet.europa.eu/page/eea/languages/en"));
+        
+    }
+    
+    @Test
+    public void mapProvenance(){
+        String recordId = xb_metadata.getFileIdentifier().getCharacterString();
+        
+        String personName = "Marcel-Adenaeuer";
+        
+        assertTrue(model.getProperty(model.getResource(mapper.getUriBase_record() +  recordId), org.n52.lod.vocab.PROV.wasDerivedFrom).getResource().getURI().toString().contains("glues:ilr:metadata:dataset:capri"));
+        assertTrue(model.getProperty(model.getResource(mapper.getUriBase_record() +  recordId), org.n52.lod.vocab.PROV.wasAttributedTo).getResource().getURI().toString().contains(personName));
+        
+        Resource provenance = model.getProperty(model.getResource(mapper.getUriBase_record() +  recordId), com.hp.hpl.jena.vocabulary.DCTerms.provenance).getResource();
+        
+        String sourceURI = provenance.getProperty(PROV.used).getObject().asResource().getURI().toString();
+        
+        assertTrue(sourceURI.contains("glues-ext:oecd:metadata:dataset:oecdfaoagriculturaloutlook209-2018") || 
+                sourceURI.contains("glues-ext:eurostat:metadata:dataset:eurostatdatasetdomains") || 
+                sourceURI.contains("glues-ext:fao:metadata:dataset:faostatdatabasedomains"));
+        
+        assertTrue(provenance.getProperty(PROV.generated).getResource().getURI().toString().contains(recordId));
+        assertTrue(provenance.getProperty(PROV.wasAssociatedWith).getResource().getURI().toString().contains(personName));
+        assertTrue(provenance.getProperty(PROV.influencer).getResource().getURI().toString().contains(personName));
         
     }
 
