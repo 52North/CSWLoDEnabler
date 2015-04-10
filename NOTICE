@@ -30,7 +30,8 @@ This project includes:
   Hamcrest Core under New BSD License
   HttpClient under Apache License
   HttpCore under Apache License
-  ISO 19115-2:2009 Geographic information -- Metadata -- Part 2: Extensions for imagery and gridded data schema (v0.1) under The Apache Software License, Version 2.0
+  ISO 19115-2:2009 Geographic information -- Metadata -- Part 2: Extensions for imagery and gridded data schema GLUES Version under The Apache Software License, Version 2.0
+  ISO/TC 211 XML schemas under The Apache Software License, Version 2.0
   isorelax under MIT license
   Jackson-annotations under The Apache Software License, Version 2.0 or GNU Lesser General Public License, Version 2.1
   Jackson-core under The Apache Software License, Version 2.0 or GNU Lesser General Public License, Version 2.1
@@ -63,6 +64,7 @@ This project includes:
   OGC SWECommon schema (spec. v1.0.1) under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
   OGC SWES schema (spec. v2.0) under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
   OGC WPS schema (spec. v1.0.0) under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
+  OGC XML schemas under The Apache Software License, Version 2.0
   OxF Features under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
   OxFramework Adapters API under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
   OxFramework CSW Adapter under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
