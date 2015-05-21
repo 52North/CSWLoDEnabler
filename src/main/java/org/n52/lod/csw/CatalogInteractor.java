@@ -151,7 +151,7 @@ public class CatalogInteractor {
         GetRecordsResponseDocument doc = GetRecordsResponseDocument.Factory.parse(response.getEntity().getContent());
         
         BigInteger numberOfRecordsMatched = doc.getGetRecordsResponse().getSearchResults().getNumberOfRecordsMatched();
-        return numberOfRecordsMatched.longValueExact();
+        return numberOfRecordsMatched.longValue();
     }
 
     public String executeGetRecordsById(String recordID) throws OXFException, ExceptionReport {
