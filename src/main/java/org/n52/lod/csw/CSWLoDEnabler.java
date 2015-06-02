@@ -47,6 +47,7 @@ import net.opengis.cat.csw.x202.SearchResultsType;
 import org.apache.xmlbeans.XmlException;
 import org.apache.xmlbeans.XmlOptions;
 import org.n52.lod.Configuration;
+import org.n52.lod.ProgressListener;
 import org.n52.lod.Report;
 import org.n52.lod.csw.mapping.GluesMapper;
 import org.n52.lod.csw.mapping.WKTLiteralType;
@@ -100,6 +101,8 @@ public class CSWLoDEnabler {
     Configuration config = null;
 
     private CatalogInteractor csw;
+    
+    private ProgressListener progressListener;
 
     protected Report report = new Report();
 
@@ -108,6 +111,8 @@ public class CSWLoDEnabler {
     public CSWLoDEnabler(Configuration config) {
         
         WKTLiteralType type = WKTLiteralType.theWKTLiteralType;
+        
+        this.progressListener = config.getProgressListener();
         
         TypeMapper.getInstance().registerDatatype(type);
         
@@ -297,8 +302,9 @@ public class CSWLoDEnabler {
 
         overallTimer.stop();
         otherTimer.stop();
-
+        
         log.info("DONE with CSW to LOD.. duration = {} (retrieving: {}, mapping = {}, other = {})", overallTimer, retrievingTimer, mappingTimer, otherTimer);
+        
         log.info("Results: {}", report);
         log.info("Sinks: server = {}, file = {}", addToServer, saveToFile);
         log.info("Server: {} | File: {}", serverSink, fileSink);
@@ -407,7 +413,14 @@ public class CSWLoDEnabler {
     protected Map<String, GetRecordByIdResponseDocument> retrieveRecords(int startPos,
             int maxRecords,
             long recordsInTotal) {
-        log.info("Retrieve {} records, starting from {} of {}", maxRecords, startPos, recordsInTotal);
+    	
+    	String progressInfo = String.format("Retrieve %d records, starting from %d of %d", maxRecords, startPos, recordsInTotal);
+    	
+    	if(this.progressListener != null){
+    		progressListener.updateProgress((int) (((double)startPos / (double)recordsInTotal) * 100));
+    	}
+    	
+        log.info(progressInfo);
 
         List<String> recordIdList = getRecordIds(startPos, maxRecords);
 
@@ -562,6 +575,10 @@ public class CSWLoDEnabler {
         StringBuilder builder = new StringBuilder();
         builder.append("CSWLoDEnabler [addToTripleStore=").append(addToServer).append(", saveToFile=").append(saveToFile).append("]");
         return builder.toString();
+    }
+
+    public Report getReport() {
+        return report;
     }
 
 }
