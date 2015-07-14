@@ -85,10 +85,17 @@ public class Configuration {
             return;
         }
         
-        new Configuration(props);
+        init(props);
     }
     
     public Configuration(Properties props) {
+        
+        init(props);
+        
+        log.info("NEW {}", this);
+    }
+    
+    public void init(Properties props){
 
         nsGMD = props.getProperty("NS_GMD");
         nsCSW = props.getProperty("NS_CSW");
@@ -106,7 +113,6 @@ public class Configuration {
         projectShortname = props.getProperty("PROJECT_SHORTNAME");
         uriBase = props.getProperty("URI_BASE");
         
-        log.info("NEW {}", this);
     }
 
     public String getNsGMD() {
