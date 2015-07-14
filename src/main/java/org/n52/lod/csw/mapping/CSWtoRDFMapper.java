@@ -515,10 +515,6 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
 
                                     addLiteral(sourceResource, source.getDescription(), DC_11.description);
 
-                                    if (source.getSourceCitation() != null) {
-                                        parseCitation(recordResource, source.getSourceCitation().getCICitation());
-                                    }
-
                                     // associate 'source' with
                                     // 'processStepResource':
                                     processStepResource.addProperty(PROV.used, sourceResource);
