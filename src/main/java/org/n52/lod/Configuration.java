@@ -66,6 +66,8 @@ public class Configuration {
     private String projectShortname;
 
     private String uriBase;
+    
+    private ProgressListener progressListener;
 
     public static final String DEFAULT_CONFIG_FILE = "/lod.properties";
 
@@ -82,6 +84,18 @@ public class Configuration {
             log.error("Could not read properties file {}", configFile, e);
             return;
         }
+        
+        init(props);
+    }
+    
+    public Configuration(Properties props) {
+        
+        init(props);
+        
+        log.info("NEW {}", this);
+    }
+    
+    public void init(Properties props){
 
         nsGMD = props.getProperty("NS_GMD");
         nsCSW = props.getProperty("NS_CSW");
@@ -99,7 +113,6 @@ public class Configuration {
         projectShortname = props.getProperty("PROJECT_SHORTNAME");
         uriBase = props.getProperty("URI_BASE");
         
-        log.info("NEW {}", this);
     }
 
     public String getNsGMD() {
@@ -157,5 +170,13 @@ public class Configuration {
     public String getUriBase() {
         return uriBase;
     }
+
+	public ProgressListener getProgressListener() {
+		return progressListener;
+	}
+
+	public void setProgressListener(ProgressListener progressListener) {
+		this.progressListener = progressListener;
+	}
 
 }

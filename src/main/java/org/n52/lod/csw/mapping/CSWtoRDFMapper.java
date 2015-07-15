@@ -387,7 +387,10 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
             XmlObject[] xmlObjectArray = identification.selectChildren(config.getNsGMD(), "topicCategory");
             for (int j = 0; j < xmlObjectArray.length; j++) {
                 MDTopicCategoryCodePropertyType topicCategory = (MDTopicCategoryCodePropertyType) xmlObjectArray[j];
-                recordResource.addLiteral(DC_11.subject, topicCategory.getMDTopicCategoryCode().toString());
+                String subject = topicCategory.getMDTopicCategoryCode().toString();
+                if(subject != null && !(subject.equals("")|subject.equals(" "))){
+                    recordResource.addLiteral(DC_11.subject, subject);
+                }
             }
         }
     }
@@ -514,10 +517,6 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
                                     sourceResource.addProperty(RDF.type, PROV.Entity);
 
                                     addLiteral(sourceResource, source.getDescription(), DC_11.description);
-
-                                    if (source.getSourceCitation() != null) {
-                                        parseCitation(recordResource, source.getSourceCitation().getCICitation());
-                                    }
 
                                     // associate 'source' with
                                     // 'processStepResource':
@@ -817,7 +816,10 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
             CharacterStringPropertyType characterStringProperty,
             Property property) {
         if (characterStringProperty != null) {
-            resource.addLiteral(property, characterStringProperty.getCharacterString());
+            String characterString = characterStringProperty.getCharacterString();
+            if(characterString != null && !(characterString.equals("") || characterString.equals(" "))){
+                resource.addLiteral(property, characterString);
+            }
             return true;
         }
         return false;
@@ -879,7 +881,10 @@ public class CSWtoRDFMapper implements XmlToRdfMapper {
             Property property) {
         if (characterStringPropertyArray != null) {
             for (int i = 0; i < characterStringPropertyArray.length; i++) {
-                resource.addLiteral(property, characterStringPropertyArray[i].getCharacterString());
+                String characterString = characterStringPropertyArray[i].getCharacterString();
+                if(characterString != null && !(characterString.equals("") || characterString.equals(" "))){
+                    resource.addLiteral(property, characterString);
+                }
             }
             return true;
         }
