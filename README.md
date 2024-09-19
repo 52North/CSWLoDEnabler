@@ -1,3 +1,7 @@
+# ARCHIVED
+
+This project is no longer maintained and will not receive any further updates. If you plan to continue using it, please be aware that future security issues will not be addressed.
+
 # CSW to LOD Translator
 
 This project maps the entries of an OGC Catalog (CSW, http://www.opengeospatial.org/standards/cat) to Linked Open Data using Jena (https://jena.apache.org/) and inserts the results into a Virtuoso Triple Store (http://virtuoso.openlinksw.com/dataspace/doc/dav/wiki/Main/). This software is developed in the project [GLUES](https://wiki.52north.org/bin/view/Projects/GLUES).
